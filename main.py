@@ -1,9 +1,41 @@
 # funktiot
+import random
+import mysql.connector
+
+yhteys = mysql.connector.connect(
+         host='127.0.0.1',
+         port= 3306,
+         database='flight_game',
+         user='root',
+         password='KierukkaKupariNöö7!',
+         autocommit=True
+         )
+
+
+
 def backlore():
     print('backlore - tavoite')
 
 def destination(): #kohde minne haluat matkustaa
     destination = input('Kirjoita icao koodi minne haluat matkustaa')
+
+# patient location arpominen
+def patient_location():
+    icaolista = []
+    while len(icaolista) < 12:
+        m = random.randint(2,21)
+        if m not in icaolista:
+            icaolista.append(m)
+
+    b = 0
+    for i in range(12):
+        sql = f"UPDATE patient SET location = (select ident from airport WHERE id = '{icaolista[b]}')"
+        b += 1
+        kursori = yhteys.cursor()
+        kursori.execute(sql)
+        tulos = kursori.fetchall()
+    return tulos
+
 
 
 # Pelin aloitus
