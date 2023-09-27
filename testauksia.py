@@ -21,8 +21,10 @@ def patient_location():
 
     for i in range(12):
         uus = icaolista[i]
+        print(uus)
         sql = (f"UPDATE patient SET location = (SELECT ident FROM airport WHERE airport.id = '{uus}') "
-               f"WHERE patient.id = '{i}'")
+               f"WHERE patient.id = '{i+1}'")
+        print(sql)
         kursori = yhteys.cursor()
         kursori.execute(sql)
 
