@@ -22,19 +22,20 @@ def destination(): #kohde minne haluat matkustaa
 # patient location arpominen
 def patient_location():
     icaolista = []
+
     while len(icaolista) < 12:
-        m = random.randint(2,21)
+        m = random.randint(2, 21)
         if m not in icaolista:
             icaolista.append(m)
 
-    b = 0
     for i in range(12):
-        sql = f"UPDATE patient SET location = (select ident from airport WHERE id = '{icaolista[b]}')"
-        b += 1
+        uus = icaolista[i]
+        sql = (f"UPDATE patient SET location = (SELECT ident FROM airport WHERE airport.id = '{uus}') "
+               f"WHERE patient.id = '{i}'")
         kursori = yhteys.cursor()
         kursori.execute(sql)
-        tulos = kursori.fetchall()
-    return tulos
+
+    return
 
 
 
