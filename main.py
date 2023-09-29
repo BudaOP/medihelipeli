@@ -133,6 +133,8 @@ def destination(): #kohde minne haluat matkustaa
             old_range = int(player_range()[0])
             new_range = old_range - destination_distance
             sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
+            cursor = yhteys.cursor()
+            cursor.execute(sql_new_range)
             print(f"Your new range is {new_range} kilometers ")
         if destination_distance > int(player_range()[0]):
             print(f"You don't have enough range to travel to this destination ")
@@ -141,14 +143,6 @@ def destination(): #kohde minne haluat matkustaa
         print(f"Please try again")
         destination()
     return
-
-    #Päivitetään uusi range
-    old_range = int(player_range()[0])
-    new_range = old_range - destination_distance
-    sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
-    print(f"Your new range is {new_range} kilometers ")
-    return
-
 
 
 # patient location arpominen
