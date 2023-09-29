@@ -73,7 +73,6 @@ def distances():
 
     lista = []
     for i in range(20):
-        # print(f"{distance.distance({res_player_coord[0]}, {res_airport_coord[i]}).km:.2f} km")
         comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
 
         if comparison <= float(player_range()[0]):
@@ -97,7 +96,6 @@ def home_hospital():
     comparison_home = distance.distance({player_coord()[0]}, {res_home_coord[0]})
     if comparison_home == 0:
         print(f"You are at the home hospital")
-
     else:
         print(f"Your distance to the home hospital is {comparison_home}")
     return
@@ -136,9 +134,10 @@ def destination(): #kohde minne haluat matkustaa
             cursor = yhteys.cursor()
             cursor.execute(sql_new_range)
             print(f"Your new range is {new_range} kilometers ")
-        if destination_distance > int(player_range()[0]):
+        elif destination_distance > int(player_range()[0]):
             print(f"You don't have enough range to travel to this destination ")
             destination()
+
     if cursor.rowcount == 0:
         print(f"Please try again")
         destination()
