@@ -4,13 +4,13 @@ from geopy import distance
 from tabulate import tabulate
 
 yhteys = mysql.connector.connect(
-         host='127.0.0.1',
-         port= 3306,
-         database='flight_game',
-         user='root',
-         password='ronistrom',
-         autocommit=True
-         )
+    host='127.0.0.1',
+    port=3306,
+    database='flight_game',
+    user='root',
+    password='Astr0n4utt1?',
+    autocommit=True
+)
 
 
 # FUNKTIOT
@@ -26,6 +26,7 @@ def start():
     cursor.execute(sql_start)
     return
 
+
 def lore():
     print(f'*backlore will be here*')
     return
@@ -40,6 +41,7 @@ def player_coord():
     cursor.execute(sql_player_coord)
     res_player_coord = cursor.fetchall()
     return res_player_coord
+
 
 def distances():
     # ohjelma hakee kaikkien lentokenttien koordinaatit (pl. pelaajan sijainti)
@@ -95,30 +97,30 @@ def home_hospital():
     # ohjelma kertoo jos pelaaja on kotisairaalassa tai mikä olisi etäisyys sinne
     comparison_home = distance.distance({player_coord()[0]}, {res_home_coord[0]})
     if comparison_home == 0:
-        print(f"You are at the home hospital")
+        print(f"\nYou are at the home hospital")
     else:
-        print(f"Your distance to the home hospital is {comparison_home}")
+        print(f"\nYour distance to the home hospital is {comparison_home}")
     return
 
 
 def player_range():
     # hakee pelaajan sen hetkisen rangen
     sql_range = f"SELECT range_km from player"
-    
+
     cursor = yhteys.cursor()
     cursor.execute(sql_range)
     res_range = cursor.fetchone()
     return res_range
 
 
-def destination(): #kohde minne haluat matkustaa
+def destination():  # kohde minne haluat matkustaa
     new_location = input('Type the ICAO code: ')
     sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
     cursor = yhteys.cursor()
     cursor.execute(sql_icao_coord)
     res_icao_coord = cursor.fetchall()
 
-    #Lasketaan, riittääkö range halutulle lentokentälle
+    # Lasketaan, riittääkö range halutulle lentokentälle
     if cursor.rowcount > 0:
         destination_distance = int(distance.distance(player_coord(), res_icao_coord).km)
         if destination_distance <= int(player_range()[0]):
@@ -156,12 +158,46 @@ def patient_location():
     for i in range(12):
         uus = icaolista[i]
         sql = (f"UPDATE patient SET location = (SELECT ident FROM airport WHERE airport.id = '{uus}') "
-               f"WHERE patient.id = '{i+1}'")
+               f"WHERE patient.id = '{i + 1}'")
         kursori = yhteys.cursor()
         kursori.execute(sql)
 
     return
 
+def patient_randomizer():
+    # arpoo 3 potilaan tiedot, joita ei ole vielä pelastettu
+    patient_list = []
+    # print(f"\nPatient locations: ")
+    while len(patient_list) < 3:
+        patient_no = random.randint(1, 12)
+        sql_patient_no = f"SELECT location FROM patient WHERE id = '{patient_no}' AND rescued = 0"
+        cursor = yhteys.cursor()
+        cursor.execute(sql_patient_no)
+        res_patient_no = cursor.fetchall()
+        # peli arpoo aina 3 eri potilasta, mikäli pelastettavia potilaita on tarpeeksi jäljellä
+        if res_patient_no not in patient_list:
+            patient_list.append(res_patient_no)
+
+    return patient_list
+
+def rescue_patient():
+    # tarkistetaan onko pelaajan sijainnissa potilasta, jota ei ole vielä pelastettu (rescued=0)
+    sql_rescue_player = f"SELECT location FROM player"
+    cursor = yhteys.cursor()
+    cursor.execute(sql_rescue_player)
+    res_rescue_player = cursor.fetchone()
+
+    sql_rescue_patient = f"SELECT id FROM patient WHERE rescued = 0 AND location = '{res_rescue_player[0]}'"
+    cursor = yhteys.cursor()
+    cursor.execute(sql_rescue_patient)
+    res_rescue_patient = cursor.fetchall()
+
+    if cursor.rowcount != 0:
+        print(f"Your location has a patient")
+
+    else:
+        print(f"Your location is patientless")
+    return
 
 # Pelin aloitus
 aloitus = input('Do you want to start a new game? y/n: ')
@@ -176,16 +212,18 @@ if backlore == "y":
 print('Game goal: save the patients')
 
 start()
-
 distances()
 
 # hakee tietokannasta tiedot sijainnista ja potilaista (polttoainetiedot jne)
 # kysyy minne haluat lentää seuraavaksi ja [näyttää lento vaihtoehdot ja ranget] -> def measure_distance()
 
-home_hospital()
-player_range()
-destination()
-
+patient_location() # arpoo potilaiden sijainnit
+home_hospital() # pelaajan ja kotisairaalan etäisyys
+player_range() # pelaajan range
+patient_locations = patient_randomizer() # arpoo 3 potilasta
+print(patient_locations)
+destination() # mahdolliset kohteet, mihin pelaaja tahtoo mennä
+rescue_patient()
 
 # def funktio(destination)
 # sijainti päivittyy
