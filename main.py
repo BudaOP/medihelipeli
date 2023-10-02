@@ -8,7 +8,7 @@ yhteys = mysql.connector.connect(
     port=3306,
     database='flight_game',
     user='root',
-    password='Astr0n4utt1?',
+    password='KierukkaKupariNöö7!',
     autocommit=True
 )
 
@@ -21,9 +21,11 @@ def start():
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
                  f"range_km = 400 WHERE id = 1")
+    sql_start_patient = f"UPDATE patient SET rescued = 0"
 
     cursor = yhteys.cursor()
     cursor.execute(sql_start)
+    cursor.execute(sql_start_patient)
     return
 
 
@@ -114,7 +116,7 @@ def player_range():
 
 
 def destination():  # kohde minne haluat matkustaa
-    new_location = input('Type the ICAO code: ')
+    new_location = input('Type the ICAO code: ').upper()
     sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
     cursor = yhteys.cursor()
     cursor.execute(sql_icao_coord)
@@ -164,6 +166,7 @@ def patient_location():
 
     return
 
+
 def patient_randomizer():
     # arpoo 3 potilaan tiedot, joita ei ole vielä pelastettu
     patient_list = []
@@ -173,30 +176,36 @@ def patient_randomizer():
         sql_patient_no = f"SELECT location FROM patient WHERE id = '{patient_no}' AND rescued = 0"
         cursor = yhteys.cursor()
         cursor.execute(sql_patient_no)
-        res_patient_no = cursor.fetchall()
+        res_patient_no = cursor.fetchone()
         # peli arpoo aina 3 eri potilasta, mikäli pelastettavia potilaita on tarpeeksi jäljellä
-        if res_patient_no not in patient_list:
-            patient_list.append(res_patient_no)
+        if res_patient_no[0] not in patient_list:
+            patient_list.append(res_patient_no[0])
 
     return patient_list
 
-def rescue_patient():
+
+def rescue_patient(patient_list):
     # tarkistetaan onko pelaajan sijainnissa potilasta, jota ei ole vielä pelastettu (rescued=0)
     sql_rescue_player = f"SELECT location FROM player"
     cursor = yhteys.cursor()
     cursor.execute(sql_rescue_player)
     res_rescue_player = cursor.fetchone()
 
-    sql_rescue_patient = f"SELECT id FROM patient WHERE rescued = 0 AND location = '{res_rescue_player[0]}'"
-    cursor = yhteys.cursor()
-    cursor.execute(sql_rescue_patient)
-    res_rescue_patient = cursor.fetchall()
+    if res_rescue_player is not None:
+        player_location = res_rescue_player[0]  # Extract the location from the tuple
+        if player_location in patient_list:
+            sql_rescue_patient = f"SELECT id FROM patient WHERE rescued = 0 AND location = '{player_location}'"
+            cursor.execute(sql_rescue_patient)
+            res_rescue_patient = cursor.fetchall()
 
-    if cursor.rowcount != 0:
-        print(f"Your location has a patient")
-
-    else:
-        print(f"Your location is patientless")
+            if cursor.rowcount != 0:
+                print(f"You have picked up one of your patients. Continue your mission!")
+                update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0][0]}'"
+                update_patient_qty = f"UPDATE player SET patient_qty = (patient_qty + 1) where id = 1"
+                cursor.execute(update_patient_qty)
+                cursor.execute(update_rescue_patient)
+        else:
+            print(f"There is no patient to be saved here. Continue your mission!")
     return
 
 # Pelin aloitus
@@ -221,9 +230,9 @@ patient_location() # arpoo potilaiden sijainnit
 home_hospital() # pelaajan ja kotisairaalan etäisyys
 player_range() # pelaajan range
 patient_locations = patient_randomizer() # arpoo 3 potilasta
-print(patient_locations)
+print(*patient_locations)
 destination() # mahdolliset kohteet, mihin pelaaja tahtoo mennä
-rescue_patient()
+rescue_patient(patient_locations)
 
 # def funktio(destination)
 # sijainti päivittyy
