@@ -20,7 +20,7 @@ def start():
     screen_name = input("\nWhat's your name? ")
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
-                 f"range_km = 1000 WHERE id = 1")
+                 f"range_km = 10000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
 
     cursor = yhteys.cursor()
@@ -117,11 +117,11 @@ def home_hospital():
     res_home_coord = cursor.fetchall()
 
     # ohjelma kertoo jos pelaaja on kotisairaalassa tai mikä olisi etäisyys sinne
-    comparison_home = distance.distance({player_coord()[0]}, {res_home_coord[0]})
+    comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
     if comparison_home == 0:
         print(f"\nYou are at the home hospital")
     else:
-        print(f"\nYour distance to the home hospital is {comparison_home}")
+        print(f"\nYour distance to the home hospital is {comparison_home} kilometers")
     return
 
 
@@ -198,8 +198,9 @@ def patient_randomizer():
         cursor.execute(sql_patient_no)
         res_patient_no = cursor.fetchone()
         # peli arpoo aina 3 eri potilasta, mikäli pelastettavia potilaita on tarpeeksi jäljellä
-        if res_patient_no[0] not in patient_list:
-            patient_list.append(res_patient_no[0])
+        if res_patient_no is not None:
+            if res_patient_no[0] not in patient_list:
+                patient_list.append(res_patient_no[0])
 
     return patient_list
 
@@ -231,18 +232,18 @@ def rescue_patient(patient_list):
 
 # tarkistetaan onko pelaaja saavuttanut tavoitteen
 def victory():
-    sql_victory = "SELECT patient_goal FROM player WHERE id = 1"
+    sql_victory = "SELECT patient_qty FROM player WHERE id = 1" #vaiha patient_qty -> patient_goal
     cursor = yhteys.cursor()
     cursor.execute(sql_victory)
     res_victory = cursor.fetchone()
     res_victory = res_victory[0]
     return res_victory
 
-print(victory())
-
-
-
-
+def update_goal():
+    sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + 3, patient_qty = 0"
+    cursor = yhteys.cursor()
+    cursor.execute(sql_goal)
+    return
 
 
 # PELIN ALOITUS
@@ -270,7 +271,7 @@ if new_game == "Y":
 
     start() #resetoi tietokannan peliä varten
     patient_location() # arpoo potilaiden sijainnit
-
+    patient_locations = patient_randomizer()
 
 
 # GAME LOOP
@@ -280,25 +281,31 @@ if new_game == "Y":
     win = False
 
     while not game_over:
-        victor = victory()
-        if victor != 12:
+        patient_goal = victory()
+        if patient_goal != 12:
             distance_lista = distances()
             if len(distance_lista) == 0:
                 game_over = True
             else:
-                if victor in (3,6,9):
-                    print("MOImoi")
-                    home_hospital()  # pelaajan ja kotisairaalan etäisyys
-
+                print(f"\nPatient locations: ")
+                print(*patient_locations)
+                rescue_patient(patient_locations)
+                print(f"Rescued patients {(victory())}")
+                home_hospital()  # pelaajan ja kotisairaalan etäisyys
+                if victory() != 3 or victory() != 6 or victory() != 9:
+                    destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
+                if victory() == 3 or victory() == 6 or victory() == 9:
+                    update_goal()
+                    print("Patient saved")
                     patient_locations = patient_randomizer()  # arpoo 3 potilasta
+                    distances()
                     print(f"\nPatient locations: ")
                     print(*patient_locations)
+                    destination()
 
-                    destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
-                    rescue_patient(patient_locations)
-
-        if victor == 12:
+        if patient_goal == 12:
             print("voitit")
+            win = True
     if game_over == True:
         print(f"Game over. You are out of range. :(")
 
