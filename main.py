@@ -17,10 +17,10 @@ yhteys = mysql.connector.connect(
 
 
 def start():
-    screen_name = input("What's your name? ")
+    screen_name = input("\nWhat's your name? ")
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
-                 f"range_km = 400 WHERE id = 1")
+                 f"range_km = 1000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
 
     cursor = yhteys.cursor()
@@ -28,7 +28,23 @@ def start():
     cursor.execute(sql_start_patient)
     return
 
+def game_start():
+    # Pelaaja valitsee, haluaako valita pelin
+    # Loop jatkuu, kunnes pelaaja antaa vastaukseksi joko Y (kyllä) tai N (ei)
 
+    valid_input = False
+
+    while not valid_input:
+        game_input = input("Would you like to start a game? (y/n): ").upper()
+
+        if game_input == "Y" or game_input == "N":
+            valid_input = True
+
+        else:
+            print(f"\nInvalid input, please try again:")
+            continue
+
+    return game_input
 def lore():
     print(f'*backlore will be here*')
     return
@@ -36,8 +52,8 @@ def lore():
 
 def player_coord():
     # pelaajan sijainnin koordinaatit
-    sql_player_coord = f"SELECT latitude_deg, longitude_deg from airport"
-    sql_player_coord += f" where ident in (select location from player)"
+    sql_player_coord = (f"SELECT latitude_deg, longitude_deg from airport"
+                        f" where ident in (select location from player)")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_player_coord)
@@ -47,30 +63,29 @@ def player_coord():
 
 def distances():
     # ohjelma hakee kaikkien lentokenttien koordinaatit (pl. pelaajan sijainti)
-    sql_airport_coord = f"SELECT latitude_deg, longitude_deg from airport"
-    sql_airport_coord += f" where ident not in (select location from player)"
+    sql_airport_coord = (f"SELECT latitude_deg, longitude_deg from airport"
+                        f" where ident not in (select location from player)")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_airport_coord)
     res_airport_coord = cursor.fetchall()
 
     # ohjelma hakee kaikkien lentokenttien kunnat ja icao-koodit
-    sql_municipality = f"SELECT municipality from airport"
-    sql_municipality += f" where ident not in (select location from player)"
+    sql_municipality = (f"SELECT municipality from airport"
+                        f" where ident not in (select location from player)")
 
     cursor.execute(sql_municipality)
     res_municipality = cursor.fetchall()
 
     # ohjelma hakee kaikkien lentokenttien kunnat ja icao-koodit
-    sql_icao = f"SELECT ident from airport"
-    sql_icao += f" where ident not in (select location from player)"
+    sql_icao = (f"SELECT ident from airport"
+                f" where ident not in (select location from player)")
 
     cursor.execute(sql_icao)
     res_icao = cursor.fetchall()
 
     # ohjelma kertoo pelaajan jäljellä olevan rangen
     print(f"Your current range is {player_range()[0]} kilometers")
-    print(f"\nThese locations are within your range:")
 
     # vertailu muihin kuntiin kuin kotisairaalaan
     # mikäli range riittää toiseen kuntaan, ohjelma tulostaa kunnan nimen ja heliportin icao-koodin
@@ -83,14 +98,19 @@ def distances():
             lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
             # print(f"{res_municipality[i][0]} - {res_icao[i][0]} - {comparison}")
-    print(tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)']))
-    return
+
+    if len(lista) > 0:
+        print(f"\nThese locations are within your range:")
+        print(tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)']))
+    elif len(lista) == 0:
+        print(f"No location is within your range.")
+    return lista
 
 
 def home_hospital():
     # vertailu kotisairaalaan
-    sql_home_coord = f"SELECT latitude_deg, longitude_deg from airport"
-    sql_home_coord += f" where ident = 'ENTR'"
+    sql_home_coord = (f"SELECT latitude_deg, longitude_deg from airport"
+                        f" where ident = 'ENTR'")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_home_coord)
@@ -129,7 +149,7 @@ def destination():  # kohde minne haluat matkustaa
             sql_update_location = (f"UPDATE player SET location = '{new_location}'")
             cursor = yhteys.cursor()
             cursor.execute(sql_update_location)
-            print(f"You are now at {new_location}")
+            print(f"\nYou are now at {new_location}")
 
             # Päivitetään uusi range
             old_range = int(player_range()[0])
@@ -208,42 +228,93 @@ def rescue_patient(patient_list):
             print(f"There is no patient to be saved here. Continue your mission!")
     return
 
-# Pelin aloitus
-aloitus = input('Do you want to start a new game? y/n: ')
 
-# backlore
+# tarkistetaan onko pelaaja saavuttanut tavoitteen
+def victory():
+    sql_victory = "SELECT patient_goal FROM player WHERE id = 1"
+    cursor = yhteys.cursor()
+    cursor.execute(sql_victory)
+    res_victory = cursor.fetchone()
+    res_victory = res_victory[0]
+    return res_victory
 
-backlore = input('Would you like to read the backlore? y/n: ')
-if backlore == "y":
-    lore()
+print(victory())
 
-# säännöt pelaajalle
-print('Game goal: save the patients')
 
-start()
-distances()
 
-# hakee tietokannasta tiedot sijainnista ja potilaista (polttoainetiedot jne)
-# kysyy minne haluat lentää seuraavaksi ja [näyttää lento vaihtoehdot ja ranget] -> def measure_distance()
 
-patient_location() # arpoo potilaiden sijainnit
-home_hospital() # pelaajan ja kotisairaalan etäisyys
-player_range() # pelaajan range
-patient_locations = patient_randomizer() # arpoo 3 potilasta
-print(*patient_locations)
-destination() # mahdolliset kohteet, mihin pelaaja tahtoo mennä
-rescue_patient(patient_locations)
 
-# def funktio(destination)
-# sijainti päivittyy
-# update komennolla päivitetään patient rescued (player.location == patient.location -> rescued = 1)
 
-# Annetaan uudet kohteet + kotisairaala destination -> def vaihtoehdot +
-# if player.location not in kotisairaala1 or kotisairaala2 ==> def vaihtoehdot antaa myös kotisairaalan tiedot
-# if location == kotisairaala --> get fuel x määrä
-# kun player uudes kohtees mis on potilas -> if patients_qty < 3 update rescued +1 ja patients_qty +1
-# if player.location == kotisairaala -> patient_goal = patient_goal + patients_qty,
-# jonka jälkeen patients_qty muutetaan nollaksi'
+# PELIN ALOITUS
 
-# if patient_goal == 12 -> peli päättyy (voitto)
-# if def vaihtoehdot - rowcount == 0 -> peli päättyy (häviö) else print lentokentät
+
+# Pelaaja valitsee, tahtooko aloittaa uuden pelin
+new_game = game_start()
+
+if new_game == "N":
+    print(f"Oh no! You missed on a life-changing mission! ")
+
+if new_game == "Y":
+    print(f"Congratulations! You're about to start a rescue mission.")
+
+
+
+    # Backlore
+    backlore = input('\nWould you like to read the backlore? y/n: ').upper()
+    if backlore == "Y":
+        lore()
+
+    # säännöt pelaajalle
+    print('Game goal: save the patients and return them to the home hospital')
+
+
+    start() #resetoi tietokannan peliä varten
+    patient_location() # arpoo potilaiden sijainnit
+
+
+
+# GAME LOOP
+
+
+    game_over = False
+    win = False
+
+    while not game_over:
+        victor = victory()
+        if victor != 12:
+            distance_lista = distances()
+            if len(distance_lista) == 0:
+                game_over = True
+            else:
+                if victor in (3,6,9):
+                    print("MOImoi")
+                    home_hospital()  # pelaajan ja kotisairaalan etäisyys
+
+                    patient_locations = patient_randomizer()  # arpoo 3 potilasta
+                    print(f"\nPatient locations: ")
+                    print(*patient_locations)
+
+                    destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
+                    rescue_patient(patient_locations)
+
+        if victor == 12:
+            print("voitit")
+    if game_over == True:
+        print(f"Game over. You are out of range. :(")
+
+
+
+
+        # def funktio(destination)
+        # sijainti päivittyy
+        # update komennolla päivitetään patient rescued (player.location == patient.location -> rescued = 1)
+
+        # Annetaan uudet kohteet + kotisairaala destination -> def vaihtoehdot +
+        # if player.location not in kotisairaala1 or kotisairaala2 ==> def vaihtoehdot antaa myös kotisairaalan tiedot
+        # if location == kotisairaala --> get fuel x määrä
+        # kun player uudes kohtees mis on potilas -> if patients_qty < 3 update rescued +1 ja patients_qty +1
+        # if player.location == kotisairaala -> patient_goal = patient_goal + patients_qty,
+        # jonka jälkeen patients_qty muutetaan nollaksi'
+
+        # if patient_goal == 12 -> peli päättyy (voitto)
+        # if def vaihtoehdot - rowcount == 0 -> peli päättyy (häviö) else print lentokentät
