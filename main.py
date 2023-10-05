@@ -232,7 +232,7 @@ def rescue_patient(patient_list):
 
 # tarkistetaan onko pelaaja saavuttanut tavoitteen
 def victory():
-    sql_victory = "SELECT patient_qty FROM player WHERE id = 1" #vaiha patient_qty -> patient_goal
+    sql_victory = "SELECT patient_goal FROM player WHERE id = 1"
     cursor = yhteys.cursor()
     cursor.execute(sql_victory)
     res_victory = cursor.fetchone()
@@ -240,10 +240,11 @@ def victory():
     return res_victory
 
 def update_goal():
-    sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + 3, patient_qty = 0"
+    sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
     cursor = yhteys.cursor()
     cursor.execute(sql_goal)
     return
+
 
 
 # PELIN ALOITUS
@@ -290,18 +291,20 @@ if new_game == "Y":
                 print(f"\nPatient locations: ")
                 print(*patient_locations)
                 rescue_patient(patient_locations)
-                print(f"Rescued patients {(victory())}")
+                update_goal()
+                print(f"Saved patients {(victory())}")
                 home_hospital()  # pelaajan ja kotisairaalan etäisyys
-                if victory() != 3 or victory() != 6 or victory() != 9:
-                    destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
                 if victory() == 3 or victory() == 6 or victory() == 9:
-                    update_goal()
-                    print("Patient saved")
                     patient_locations = patient_randomizer()  # arpoo 3 potilasta
-                    distances()
-                    print(f"\nPatient locations: ")
-                    print(*patient_locations)
-                    destination()
+                    print("Patient saved")
+                    jatka = input('Paina Enter -näppäintä jatkaaksesi: ')
+                    if jatka == '':
+                        distances()
+                        print(f"\nPatient locations: ")
+                        print(*patient_locations)
+                        destination()
+                else:
+                    destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
 
         if patient_goal == 12:
             print("voitit")
