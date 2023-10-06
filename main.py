@@ -8,7 +8,7 @@ yhteys = mysql.connector.connect(
     port=3306,
     database='flight_game',
     user='root',
-    password='Astr0n4utt1?',
+    password='ronistrom',
     autocommit=True
 )
 
@@ -46,7 +46,15 @@ def game_start():
 
     return game_input
 def lore():
-    print(f'*backlore will be here*')
+    print(f"Medihelipeli: A Race Against Time \nTime is running out. "
+          f"Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF, \nyou are set on a dangerous patient saving journey "
+          f"in the beautiful landscape of Norway. \nYour helicopter's fuel is limited, and each rescue mission consumes a significant portion of it. "
+          f"The goal is to save all twelve patients before you run out of fuel. "
+          f"\nEach rescue attempt must be carefully calculated to maximize fuel efficiency while minimizing the time taken to reach and rescue the patients. "
+          f"\nThere are three kinds of danger levels (1-3). The level depends on the severity of the patient's injury. "
+          f"Depending on the severity of the injury, the level changes. \nIf you manage to save all twelve patients within the fuel constraints, "
+          f"you're hailed as a hero, and the skies of Norway echo with the stories of your courage. \nHowever if your fuel runs out before completing the rescue missions, "
+          f"your journey ends, and the fate of the remaining patients remains uncertain.")
     return
 
 
@@ -85,7 +93,6 @@ def distances():
     res_icao = cursor.fetchall()
 
     # ohjelma kertoo pelaajan jäljellä olevan rangen
-    print(f"Your current range is {player_range()[0]} kilometers")
 
     # vertailu muihin kuntiin kuin kotisairaalaan
     # mikäli range riittää toiseen kuntaan, ohjelma lisää listaan kunnan ja lopuksi lista tulostetaan
@@ -144,11 +151,16 @@ def player_range():
 
 # pelaaja valitsee mihin haluaa siirtyä seuraavaksi
 def destination():
+    print(f"Your range is {player_range()[0]} kilometers ")
     new_location = input('Type the ICAO code: ').upper()
     sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
-    cursor = yhteys.cursor()
-    cursor.execute(sql_icao_coord)
-    res_icao_coord = cursor.fetchall()
+    try:
+        cursor = yhteys.cursor()
+        cursor.execute(sql_icao_coord)
+        res_icao_coord = cursor.fetchall()
+    except mysql.connector.errors.ProgrammingError:
+        print(f"Location not found, try again")
+        destination()
 
     # Lasketaan, riittääkö range halutulle lentokentälle
     if cursor.rowcount > 0:
@@ -172,7 +184,6 @@ def destination():
                 sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
                 cursor = yhteys.cursor()
                 cursor.execute(sql_new_range)
-                print(f"Your new range is {new_range} kilometers ")
         elif destination_distance > int(player_range()[0]):
             print(f"You don't have enough range to travel to this destination ")
             destination()
@@ -230,7 +241,7 @@ def patient_icao(patient_list):
     elif len(patient_list) == 2:
         print(f"Patients are located at {patient_list[0]} and {patient_list[1]}")
     elif len(patient_list) == 1:
-        print(f"Patient to be saved is located at {patient_list[0]}")
+        print(f"Last patient to be saved is located at {patient_list[0]}")
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
         print(f"No patients to be saved this time - return to home to get new patient list")
     return
@@ -255,18 +266,18 @@ def rescue_patient(patient_list):
             res_rescue_patient = cursor.fetchall()
 
             if cursor.rowcount != 0:
-                print(f"You have picked up one of your patients. Continue your mission!")
+                print(f"You have picked up one of your patients.")
                 update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0][0]}'"
                 update_patient_qty = f"UPDATE player SET patient_qty = (patient_qty + 1) where id = 1"
                 cursor.execute(update_patient_qty)
                 cursor.execute(update_rescue_patient)
         else:
             if player_location()[0] != 'ENTR':
-                print(f"There is no patient to be saved here. Continue your mission!")
+                print(f"There is no patient to be saved here.")
     return
 
 # tarkistetaan onko pelaaja saavuttanut pelin tavoitteen
-def victory():
+def goal():
     sql_victory = "SELECT patient_goal FROM player WHERE id = 1"
     cursor = yhteys.cursor()
     cursor.execute(sql_victory)
@@ -316,9 +327,10 @@ if new_game == "Y":
     win = False
 
     while not game_over and not win:
-        patient_goal = victory()
+        patient_goal = goal()
         if patient_goal != 12:
             rescue_patient(patient_locations)
+            jatka = input('Press enter to continue your mission...')
             distance_lista = distances()
 
             if len(distance_lista) == 0:
@@ -326,55 +338,36 @@ if new_game == "Y":
             else:
 
                 # kertoo pelaajalle helikopterin potilastilanteen
+                if player_location()[0] != 'ENTR':
+                    if helicopter() < 1:
+                        print(f"You don't have any patients in the helicopter and you still have space for 3 patients")
 
-                if helicopter() < 1:
-                    print(f"You haven't any patients in helicopter and you have space for 3 patients")
+                    if 1 <= helicopter() < 3:
+                        print(f"Patients picked up: {helicopter()} - still space for {3 - helicopter()} more patients")
 
-                if 1 <= helicopter() < 3:
-                    print(f"Picked patients {helicopter()} - still space for {3 - helicopter()} more patients")
+                    if helicopter() == 3:
+                        print(f"Patient picked up: {helicopter()} - helicopter is full "
+                            f"and you have to return to the home hospital")
 
-                if helicopter() == 3:
-                    print(f"Picked up patients {helicopter()} - helicopter is full "
-                        f"and you have to return to the home hospital")
 
-                print(f"Saved patients {victory()}") # kuinka monta potilasta on saatu sairaalaan
 
                 home_hospital()  # pelaajan ja kotisairaalan etäisyys:
-
                 patient_icao(patient_locations) # tulostetaan potilaiden sijainnit
                 if player_location()[0] == 'ENTR' and helicopter() != 0:
                     update_goal()
-                if victory() in (3, 6, 9):
-                    print(f"{victory()} patients saved")
-                    # jatka = input('Paina Enter -näppäintä jatkaaksesi: ')
-                    # if jatka == '':
+                print(f"Saved patients {goal()}")  # kuinka monta potilasta on saatu sairaalaan
+                if goal() in (3, 6, 9):
+                    print(f"{goal()} patients saved")
                     if player_location()[0] == 'ENTR':
                         patient_locations = patient_randomizer()  # arpoo 3 potilasta
                         patient_icao(patient_locations)
-                    # distances()
                     destination()
                 else:
                     destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
 
         if patient_goal == 12:
-            print("voitit")
+            print("Congratulations! You have completed the game. \nYou have saved all the patients and you are hailed as the hero of Norway.")
             win = True
 
     if game_over == True:
         print(f"Game over. You are out of range. :(")
-
-
-
-
-        # def funktio(destination)
-        # sijainti päivittyy
-        # update komennolla päivitetään patient rescued (player.location == patient.location -> rescued = 1)
-        # Annetaan uudet kohteet + kotisairaala destination -> def vaihtoehdot +
-        # if player.location not in kotisairaala1 or kotisairaala2 ==> def vaihtoehdot antaa myös kotisairaalan tiedot
-        # if location == kotisairaala --> get fuel x määrä
-        # kun player uudes kohtees mis on potilas -> if patients_qty < 3 update rescued +1 ja patients_qty +1
-        # if player.location == kotisairaala -> patient_goal = patient_goal + patients_qty,
-        # jonka jälkeen patients_qty muutetaan nollaksi'
-
-        # if patient_goal == 12 -> peli päättyy (voitto)
-        # if def vaihtoehdot - rowcount == 0 -> peli päättyy (häviö) else print lentokentät
