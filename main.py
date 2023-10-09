@@ -86,15 +86,29 @@ def game_start():
 
 
 def lore():
-    print(f"Medihelipeli: A Race Against Time \nTime is running out. "
-          f"Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF, \nyou are set on a dangerous patient saving journey "
-          f"in the beautiful landscape of Norway. \nYour helicopter's fuel is limited, and each rescue mission consumes a significant portion of it. "
-          f"The goal is to save all twelve patients before you run out of fuel. "
-          f"\nEach rescue attempt must be carefully calculated to maximize fuel efficiency while minimizing the time taken to reach and rescue the patients. "
-          f"\nThere are three kinds of danger levels (1-3). The level depends on the severity of the patient's injury. "
-          f"Depending on the severity of the injury, the level changes. \nIf you manage to save all twelve patients within the fuel constraints, "
-          f"you're hailed as a hero, and the skies of Norway echo with the stories of your courage. \nHowever if your fuel runs out before completing the rescue missions, "
-          f"your journey ends, and the fate of the remaining patients remains uncertain.")
+
+    valid_input = False
+
+    while not valid_input:
+
+        backlore = input('\nWould you like to read the backlore? (y/n): ').upper()
+
+        if backlore == "Y":
+            valid_input = True
+            print(f"Medihelipeli: A Race Against Time \nTime is running out. "
+                  f"Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF, \nyou are set on a dangerous patient saving journey "
+                  f"in the beautiful landscape of Norway. \nYour helicopter's fuel is limited, and each rescue mission consumes a significant portion of it. "
+                  f"The goal is to save all twelve patients before you run out of fuel. "
+                  f"\nEach rescue attempt must be carefully calculated to maximize fuel efficiency while minimizing the time taken to reach and rescue the patients. "
+                  f"\nThere are three kinds of danger levels (1-3). The level depends on the severity of the patient's injury. "
+                  f"Depending on the severity of the injury, the level changes. \nIf you manage to save all twelve patients within the fuel constraints, "
+                  f"you're hailed as a hero, and the skies of Norway echo with the stories of your courage. \nHowever if your fuel runs out before completing the rescue missions, "
+                  f"your journey ends, and the fate of the remaining patients remains uncertain.")
+        elif backlore == "N":
+            valid_input = True
+        else:
+            print(f"\nInvalid input, please try again:")
+            continue
     return
 
 
@@ -151,7 +165,7 @@ def distances():
             comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
             comparison = int(comparison*1.2)
 
-            if int(comparison) <= int(player_range()[0]):
+            if int(comparison) <= int(float(player_range()[0])):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
 
@@ -297,7 +311,10 @@ def quiz():
 
     # quiz game loop
 
-    while True:
+    played = False
+    answered = False
+
+    while not played:
 
         # pelaaja päättää haluaako vastata quiz game -kysymykseen
 
@@ -317,37 +334,47 @@ def quiz():
             print(f"{question}"
                   f"\na) {a} or b) {b} or c) {c}")
 
-            answer = input("Enter your answer: ")
-
             # pelaaja vastaa oikein
+            while not answered:
 
-            if answer == correct_answer:
+                played = True
+                answer = input("Enter your answer: ").upper()
 
-                sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 100"
-                cursor.execute(sql_quiz_fuel)
-                print(f"\nYour answer - {correct_answer} - is right!"
-                      f"\nYou gained 100km amount of range and your new range is {player_range()[0]} kilometers\n")
+                if answer not in ("A", "B", "C"):
+                    print(f"Invalid input, please try again")
 
-                break
+                    answered = False
 
-            # pelaaja vastaa väärin
-            # peli saattaa päättyä tähän, koska väärä vastaus vähentää rangea
+                elif answer == correct_answer:
 
-            elif answer != correct_answer:
+                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 100"
+                    cursor.execute(sql_quiz_fuel)
+                    print(f"\nYour answer - {correct_answer} - is right!"
+                          f"\nYou gained 100km amount of range and your new range is {player_range()[0]} kilometers\n")
 
-                sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 50"
-                cursor.execute(sql_quiz_fuel)
-                print(f"\nYour answer was wrong..."
-                      f"\nThe right answer was {correct_answer}")
+                    answered = True
 
-                if int(player_range()[0]) > 0:
-                    print(f"\nYou just lost 50km amount of range and "
-                          f"your new range is {player_range()[0]} kilometers\n")
 
-                elif int(player_range()[0]) <= 0:
-                    print(f"\nYou just lost 100km amount of range and "
-                          f"ran out of range\n")
-                break
+                # pelaaja vastaa väärin
+                # peli saattaa päättyä tähän, koska väärä vastaus vähentää rangea
+
+                elif answer != correct_answer:
+
+                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 50"
+                    cursor.execute(sql_quiz_fuel)
+                    print(f"\nYour answer was wrong..."
+                          f"\nThe right answer was {correct_answer}")
+
+                    if int(player_range()[0]) > 0:
+                        print(f"\nYou just lost 50km amount of range and "
+                              f"your new range is {player_range()[0]} kilometers\n")
+
+                    elif int(player_range()[0]) <= 0:
+                        print(f"\nYou just lost 100km amount of range and "
+                              f"ran out of range\n")
+
+                    answered = True
+                    break
 
         # pelaaja kieltäytyy pelaamasta
 
@@ -557,9 +584,9 @@ if new_game == "Y":
     print(f"Congratulations! You're about to start a rescue mission.")
 
     # Backlore
-    backlore = input('\nWould you like to read the backlore? y/n: ').upper()
-    if backlore == "Y":
-        lore()
+    #backlore = input('\nWould you like to read the backlore? y/n: ').upper()
+    #if backlore == "Y":
+    lore()
 
     # säännöt pelaajalle
     print('Game goal: save the patients and return them to the home hospital')
