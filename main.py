@@ -17,9 +17,14 @@ yhteys = mysql.connector.connect(
 
 
 def start():
-    screen_name = input("\nWhat's your name? ")
+    screen_name = input("\nWhat's your name? \n"
+                        "(Press enter to set default hero name)")
+
+    if screen_name == "":
+        screen_name = "Dr. McLovin"
+
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
-                 f"location = 'ENTR', patient_goal = 10, patient_qty = 0, "
+                 f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
                  f"range_km = 10000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
     sql_start_quiz = f"UPDATE airport SET quiz = 0"
@@ -29,11 +34,16 @@ def start():
     cursor.execute(sql_start_patient)
     cursor.execute(sql_start_quiz)
     cursor.execute(sql_start_used)
+
+    # input(f'Press enter to begin your mission, {screen_name}...\n')
     return
 
+
 def pause():
-    input('Press any key to continue your mission...\n')
+    input('Press enter to continue your mission...\n')
     return
+
+
 def quiz_randomizer():
     quizlista = []
 
@@ -73,6 +83,8 @@ def game_start():
             continue
 
     return game_input
+
+
 def lore():
     print(f"Medihelipeli: A Race Against Time \nTime is running out. "
           f"Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF, \nyou are set on a dangerous patient saving journey "
@@ -100,7 +112,7 @@ def player_coord():
 def distances():
     # ohjelma hakee kaikkien lentokenttien koordinaatit (pl. pelaajan sijainti)
     sql_airport_coord = (f"SELECT latitude_deg, longitude_deg from airport"
-                        f" where ident not in (select location from player) AND ident != 'ENTR'")
+                         f" where ident not in (select location from player) AND ident != 'ENTR'")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_airport_coord)
@@ -126,11 +138,22 @@ def distances():
     # mikäli range riittää toiseen kuntaan, ohjelma lisää listaan kunnan ja lopuksi lista tulostetaan
 
     lista = []
-    for i in range(cursor.rowcount):
-        comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
 
-        if comparison <= float(player_range()[0]):
-            lista.append([res_municipality[i][0], res_icao[i][0], comparison])
+    if goal() < 9:
+        for i in range(cursor.rowcount):
+            comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
+
+            if comparison <= int(player_range()[0]):
+                lista.append([res_municipality[i][0], res_icao[i][0], comparison])
+
+    elif goal() >= 9:
+        for i in range(cursor.rowcount):
+            comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
+            comparison = int(comparison*1.2)
+
+            if int(comparison) <= int(player_range()[0]):
+                lista.append([res_municipality[i][0], res_icao[i][0], comparison])
+
 
     if len(lista) > 0:
         print(f"\nThese locations are within your range:")
@@ -138,6 +161,7 @@ def distances():
     elif len(lista) == 0:
         print(f"No location is within your range.")
     return lista
+
 
 def helicopter():
     # hakee helikopterissa olevien potilaiden määrän
@@ -152,7 +176,7 @@ def helicopter():
 # vertailu kotisairaalaan
 def home_hospital():
     sql_home_coord = (f"SELECT latitude_deg, longitude_deg from airport"
-                        f" where ident = 'ENTR'")
+                      f" where ident = 'ENTR'")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_home_coord)
@@ -174,6 +198,7 @@ def home_hospital():
 
     return
 
+
 # hakee pelaajan sen hetkisen rangen
 def player_range():
     sql_range = f"SELECT range_km from player"
@@ -182,6 +207,7 @@ def player_range():
     cursor.execute(sql_range)
     res_range = cursor.fetchone()
     return res_range
+
 
 # pelaaja valitsee mihin haluaa siirtyä seuraavaksi
 def destination():
@@ -206,9 +232,9 @@ def destination():
                 print(f'\nYou are already at {new_location}, please try again')
                 destination()
 
-            elif new_location == 'ENTR' and helicopter() == 0:
-                print('\nYou cannot return to home with empty helicopter, please try again')
-                destination()
+            # elif new_location == 'ENTR' and helicopter() == 0:
+            #    print('\nYou cannot return to home with empty helicopter, please try again')
+            #    destination()
 
             else:
                 sql_update_location = (f"UPDATE player SET location = '{new_location}'")
@@ -216,12 +242,20 @@ def destination():
                 cursor.execute(sql_update_location)
                 print(f"\nYou have arrived at {new_location}")
 
-                # Päivitetään uusi range
-                old_range = int(player_range()[0])
-                new_range = old_range - destination_distance
-                sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
-                cursor = yhteys.cursor()
-                cursor.execute(sql_new_range)
+                if goal() < 9:
+                    old_range = int(player_range()[0])
+                    new_range = old_range - destination_distance
+                    sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
+                    cursor = yhteys.cursor()
+                    cursor.execute(sql_new_range)
+
+                elif goal() >= 9:
+                    old_range = int(player_range()[0])
+                    new_range = old_range - destination_distance*1.2
+                    sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
+                    cursor = yhteys.cursor()
+                    cursor.execute(sql_new_range)
+
 
         elif destination_distance > int(player_range()[0]):
             print(f"You don't have enough range to travel to this destination ")
@@ -232,18 +266,18 @@ def destination():
         destination()
     return
 
+
 # quiz game
 def quiz():
-
     randomizing = True
 
     print("\nQUIZ GAME\nThere happens to be quiz game on your location! "
           "\nThe questions are Norway related\n\nThe rules are quite simple "
-          "\nRight answer you gain 100 amout of km \nWrong answer you lose 100 amount of km")
+          "\nRight answer you gain 100km amount of range \nWrong answer you lose 50km amount of range")
 
     # etsii kysymyksen, jota ei oel vielä käytetty
     while randomizing:
-        m = random.randint(1,8)
+        m = random.randint(1, 8)
 
         sql_question = f"SELECT question, option1, option2, option3, correct FROM quiz WHERE id = '{m}' and used = 0"
         cursor = yhteys.cursor()
@@ -262,15 +296,15 @@ def quiz():
     correct_answer = res_question[4]
 
     # quiz game loop
-    
+
     while True:
-        
+
         # pelaaja päättää haluaako vastata quiz game -kysymykseen
-        
+
         quiz_input = (input("\nWould you like to play? y/n : ")).upper()
 
-        # pelaaja päättää pelata 
-        
+        # pelaaja päättää pelata
+
         if quiz_input == "Y":
 
             sql_quiz_used = f"UPDATE quiz SET used = 1 WHERE id = '{m}'"
@@ -278,57 +312,58 @@ def quiz():
             cursor.execute(sql_quiz_used)
             cursor.execute(sql_quiz_update)
 
-            print("\nWelcome to play Quiz game")
+            print("\nWelcome to play a quiz game!")
 
             print(f"{question}"
                   f"\na) {a} or b) {b} or c) {c}")
 
             answer = input("Enter your answer: ")
-            
+
             # pelaaja vastaa oikein
-            
+
             if answer == correct_answer:
 
                 sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 100"
                 cursor.execute(sql_quiz_fuel)
-                print(f"\nThe answer - {correct_answer} - is right!"
-                      f"\nYou gained 100 amount of km and your new range is {player_range()[0]} kilometers\n")
-                
+                print(f"\nYour answer - {correct_answer} - is right!"
+                      f"\nYou gained 100km amount of range and your new range is {player_range()[0]} kilometers\n")
+
                 break
-            
+
             # pelaaja vastaa väärin
             # peli saattaa päättyä tähän, koska väärä vastaus vähentää rangea
-            
+
             elif answer != correct_answer:
 
-                sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 100"
+                sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 50"
                 cursor.execute(sql_quiz_fuel)
-                print(f"\nThe answer was wrong..."
+                print(f"\nYour answer was wrong..."
                       f"\nThe right answer was {correct_answer}")
 
-                if float(player_range()[0]) > 0:
-                    print(f"\nYou just lost 100 amount of km and "
+                if int(player_range()[0]) > 0:
+                    print(f"\nYou just lost 50km amount of range and "
                           f"your new range is {player_range()[0]} kilometers\n")
 
-                elif float(player_range()[0]) <= 0:
-                    print(f"\nYou just lost 100 amount of km and "
-                        f"ran out of range\n")
+                elif int(player_range()[0]) <= 0:
+                    print(f"\nYou just lost 100km amount of range and "
+                          f"ran out of range\n")
                 break
-                
+
         # pelaaja kieltäytyy pelaamasta
-        
+
         elif quiz_input == "N":
-            
-            print('Okay, continue your journey')
+
+            print('Okay, your loss... \nContinue your journey')
             break
-            
+
         # syötetty vastaus on virheellinen ja vastaus kysytään uudelleen
-        
+
         else:
-            print("Wrong input, Try again!")
+            print("Wrong input, try again!")
             continue
-            
+
     return
+
 
 # potilaiden sijaintien arpominen
 def patient_location():
@@ -348,51 +383,63 @@ def patient_location():
 
     return
 
+def acute_randomizer():
+    cursor = yhteys.cursor()
+
+    sql_acute = (f"SELECT location FROM patient ORDER BY RAND(1) LIMIT 1;")
+    cursor.execute(sql_acute)
+    res_acute = cursor.fetchone()
+    return res_acute
+
 # arpoo 3 potilaan tiedot, joita ei ole vielä pelastettu
-def patient_randomizer():
-
+def patient_randomizer(acute_location):
     patient_list = []
-
+    cursor = yhteys.cursor()
     while len(patient_list) < 3:
 
         patient_no = random.randint(1, 12)
-        sql_patient_no = f"SELECT location FROM patient WHERE id = '{patient_no}' AND rescued = 0"
-        cursor = yhteys.cursor()
+        if goal() < 3:
+            sql_patient_no = (f"SELECT location FROM patient WHERE id = '{patient_no}' AND rescued = 0 "
+                              f"AND location != '{acute_location[0]}'")
+        elif goal() >= 3:
+            sql_patient_no = (f"SELECT location FROM patient WHERE id = '{patient_no}' AND rescued = 0")
+
         cursor.execute(sql_patient_no)
         res_patient_no = cursor.fetchone()
-        
+
         if res_patient_no is not None:
             if res_patient_no[0] not in patient_list:
                 patient_list.append(res_patient_no[0])
 
     return patient_list
 
+
 # tulostaa jäljellä olevien pelastettavien potilaiden sijainnit
 def patient_icao(patient_list):
-    
     sql_patient_icao = f"SELECT location FROM patient WHERE rescued = 1"
     cursor = yhteys.cursor()
     cursor.execute(sql_patient_icao)
     res_patient_icao = cursor.fetchall()
 
     for i in range(cursor.rowcount):
-        
+
         if res_patient_icao[i][0] in patient_list:
             patient_list.remove(res_patient_icao[i][0])
-            
+
     if len(patient_list) == 3:
         print(f"Patients are located at {patient_list[0]}, {patient_list[1]} and {patient_list[2]}")
-        
+
     elif len(patient_list) == 2:
         print(f"Patients are located at {patient_list[0]} and {patient_list[1]}")
-        
+
     elif len(patient_list) == 1:
         print(f"Last patient to be saved is located at {patient_list[0]}")
-        
+
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
         print(f"No patients to be saved this time - return to home to get new patient list")
-        
+
     return
+
 
 # hakee pelaajan sijainnin
 def player_location():
@@ -402,44 +449,60 @@ def player_location():
     res_rescue_player = cursor.fetchone()
     return res_rescue_player
 
+
 # tarkistetaan onko pelaajan sijainnissa potilasta, jota ei ole vielä pelastettu
 def rescue_patient(patient_list):
-    
     cursor = yhteys.cursor()
     res_rescue_player = player_location()
-    
+
     if res_rescue_player is not None:
-        
+
         player_loc = res_rescue_player[0]
-        
+
         if player_loc in patient_list:
             sql_rescue_patient = f"SELECT id FROM patient WHERE rescued = 0 AND location = '{player_loc}'"
             cursor = yhteys.cursor()
             cursor.execute(sql_rescue_patient)
             res_rescue_patient = cursor.fetchall()
 
+            update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0][0]}'"
+            update_patient_qty = f"UPDATE player SET patient_qty = (patient_qty + 1) where id = 1"
+            cursor.execute(update_patient_qty)
+            cursor.execute(update_rescue_patient)
+
             if cursor.rowcount != 0:
-                print(f"You have picked up one of your patients.")
-                update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0][0]}'"
-                update_patient_qty = f"UPDATE player SET patient_qty = (patient_qty + 1) where id = 1"
-                cursor.execute(update_patient_qty)
-                cursor.execute(update_rescue_patient)
-                
+                if player_location()[0] == acute_randomizer()[0]:
+                    if helicopter() == 0:
+                        print(f"You saved 3 patients from avalanche")
+                    elif helicopter() == 1:
+                        print(f"You saved 2 patients from avalanche")
+                    elif helicopter() == 2:
+                        print(f"You saved 1 patient from avalanche")
+
+                    print(f"Due to the acute situation you flew directly back to the home hospital.\n"
+                          f"The avalanche victims are now safe, thanks to you, hero!\n")
+                    update_player_home = f"UPDATE player SET location = 'ENTR' where id = 1"
+                    cursor.execute(update_player_home)
+                elif player_location()[0] != acute_randomizer()[0]:
+                    print(f"You have picked up one of your patients.")
+
+
         else:
-            
+
             if player_location()[0] != 'ENTR':
                 print(f"There is no patient to be saved here.")
 
     # Tarkistetaan onko pelaajan sijainnissa quiz game
-    
+
     sql_quiz_query = (f"SELECT quiz FROM airport WHERE ident = '{player_location()[0]}'")
     cursor.execute(sql_quiz_query)
     res_quiz_query = cursor.fetchone()
 
     if res_quiz_query[0] == 1:
         quiz()
-        
+
     return
+
 
 # tarkistetaan onko pelaaja saavuttanut pelin tavoitteen
 def goal():
@@ -450,20 +513,36 @@ def goal():
     res_victory = res_victory[0]
     return res_victory
 
+
 # päivittää pelaajan tietoja kotisairaalassa
 # range lisääntyy vain, mikäli pelaaja vie sairaalaan myös potilaita
 def update_goal():
-    
     if helicopter() != 0:
         sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
-        
+
     if helicopter() == 0:
         sql_goal = "UPDATE player SET patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
     return
+
+def patient_aku():
+    boolean = True
+
+    while boolean == True:
+        m = random.randint(1, 12)
+        sql_patient_loc = f"SELECT location FROM patient WHERE rescued = 0 AND id = '{m}'"
+        cursor = yhteys.cursor()
+        cursor.execute(sql_patient_loc)
+        res_patient_loc = cursor.fetchone()
+        if cursor.rowcount == 0:
+            boolean = True
+        else:
+            boolean = False
+
+    return res_patient_loc
 
 # PELIN ALOITUS
 
@@ -477,8 +556,6 @@ if new_game == "N":
 if new_game == "Y":
     print(f"Congratulations! You're about to start a rescue mission.")
 
-
-
     # Backlore
     backlore = input('\nWould you like to read the backlore? y/n: ').upper()
     if backlore == "Y":
@@ -487,15 +564,14 @@ if new_game == "Y":
     # säännöt pelaajalle
     print('Game goal: save the patients and return them to the home hospital')
 
-
-    start() #resetoi tietokannan peliä varten
+    start()  # resetoi tietokannan peliä varten
     quiz_randomizer()
-    patient_location() # arpoo potilaiden sijainnit
-    patient_locations = patient_randomizer()
+    patient_location()  # arpoo potilaiden sijainnit
+    acute_location = acute_randomizer()
+    patient_locations = patient_randomizer(acute_location)
+    #acute_location = acute_randomizer()
 
-
-# GAME LOOP - KESKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+    # GAME LOOP - KESKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     game_over = False
     win = False
@@ -516,7 +592,7 @@ if new_game == "Y":
 
         # game loop jatkuu jos pelitavoite ei ole täynnä
         elif goal() < 12:
-            #jatka = input('Press enter to continue your mission...')
+            # jatka = input('Press enter to continue your mission...')
 
             pause()
 
@@ -538,22 +614,28 @@ if new_game == "Y":
 
                     if helicopter() == 3:
                         print(f"Patient picked up: {helicopter()} - helicopter is full "
-                            f"and you have to return to the home hospital")
-
-
+                              f"and you have to return to the home hospital")
 
                 home_hospital()  # pelaajan ja kotisairaalan etäisyys:
 
-                patient_icao(patient_locations) # tulostetaan potilaiden sijainnit
+                patient_icao(patient_locations)  # tulostetaan potilaiden sijainnit
 
-                print(f"Saved patients {goal()}")  # kuinka monta potilasta on saatu sairaalaan
+                # print(f"Saved patients {goal()}")  # kuinka monta potilasta on saatu sairaalaan
+
+                #if goal() != :
+                #    patient_aku()
+                #    print('you have to go to home bitch!')
 
                 if goal() in (3, 6, 9):
 
-                    print(f"{goal()} patients saved")
+                    print(f"In total {goal()}/12 patients rescued to the hospital")
+
+                    if goal() >= 9:
+                        print(f"\nOh no! The weather in the mountains has got really awful. \n"
+                              f"The helicopter uses now 20% more fuel because of the strong headwind.\n")
 
                     if player_location()[0] == 'ENTR':
-                        patient_locations = patient_randomizer()  # arpoo 3 potilasta
+                        patient_locations = patient_randomizer(acute_location)  # arpoo 3 potilasta
                         patient_icao(patient_locations)
 
                     destination()
@@ -563,7 +645,8 @@ if new_game == "Y":
                     destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
 
     if win == True:
-        print("Congratulations! You have completed the game. \nYou have saved all the patients and you are hailed as the hero of Norway.")
+        print(
+            "Congratulations! You have completed the game. \nYou have saved all the patients and you are hailed as the hero of Norway.")
 
     if game_over == True:
         print(f"Game over. You are out of range. :(")
