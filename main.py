@@ -1,5 +1,6 @@
 import random
 import mysql.connector
+from mysql.connector import errorcode
 from geopy import distance
 from tabulate import tabulate
 
@@ -17,8 +18,9 @@ yhteys = mysql.connector.connect(
 
 
 def start():
-    screen_name = input("\nWhat's your name? \n"
-                        "(Press enter to set default hero name)")
+    screen_name = input("\nWhat's your name? "
+                        "(Press enter to set default hero name) \n"
+                        "Type here: ")
 
     if screen_name == "":
         screen_name = "Dr. McLovin"
@@ -30,12 +32,16 @@ def start():
     sql_start_quiz = f"UPDATE airport SET quiz = 0"
     sql_start_used = f"UPDATE quiz SET used = 0"
     cursor = yhteys.cursor()
-    cursor.execute(sql_start)
+    try:
+        cursor.execute(sql_start)
+    except mysql.connector.ProgrammingError as err:
+        print(f"Invalid name, please try again")
+        start()
     cursor.execute(sql_start_patient)
     cursor.execute(sql_start_quiz)
     cursor.execute(sql_start_used)
 
-    # input(f'Press enter to begin your mission, {screen_name}...\n')
+    input(f'Press enter to embark on your journey, {screen_name}...\n')
     return
 
 
@@ -157,7 +163,7 @@ def distances():
         for i in range(cursor.rowcount):
             comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
 
-            if comparison <= int(player_range()[0]):
+            if comparison <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
     elif goal() >= 9:
@@ -165,7 +171,7 @@ def distances():
             comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
             comparison = int(comparison*1.2)
 
-            if int(comparison) <= int(float(player_range()[0])):
+            if int(comparison) <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
 
@@ -183,8 +189,7 @@ def helicopter():
     cursor = yhteys.cursor()
     cursor.execute(sql_heli)
     res_heli = cursor.fetchone()
-    res_heli = res_heli[0]
-    return res_heli
+    return res_heli[0]
 
 
 # vertailu kotisairaalaan
@@ -203,9 +208,9 @@ def home_hospital():
     if comparison_home == 0:
         print(f"\nYou are at the home hospital")
 
-    elif helicopter() == 0:
-        print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
-              f"but you can't go home without any rescued patients")
+    #elif helicopter() == 0:
+    #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
+    #          f"but you can't go home without any rescued patients")
 
     else:
         print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers")
@@ -220,27 +225,44 @@ def player_range():
     cursor = yhteys.cursor()
     cursor.execute(sql_range)
     res_range = cursor.fetchone()
-    return res_range
+
+    return res_range[0]
 
 
 # pelaaja valitsee mihin haluaa siirtyä seuraavaksi
 def destination():
-    print(f"Your range is {player_range()[0]} kilometers ")
-    new_location = input('Type the ICAO code: ').upper()
-    sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
-    try:
-        cursor = yhteys.cursor()
-        cursor.execute(sql_icao_coord)
-        res_icao_coord = cursor.fetchall()
-    except mysql.connector.errors.ProgrammingError:
-        print(f"Location not found, try again")
-        destination()
+    print(f"Your range is {player_range()} kilometers ")
+    valid_input = False
+
+    # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
+
+    while not valid_input:
+        new_location = input('Type the ICAO code: ').upper()
+        sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
+
+        # Suorittaa sql-komennon
+        try:
+            cursor = yhteys.cursor()
+            cursor.execute(sql_icao_coord)
+            res_icao_coord = cursor.fetchall()
+
+            if cursor.rowcount == 0:
+                print(f"Location not found, try again")
+                valid_input = False
+
+            elif cursor.rowcount >= 1:
+                valid_input = True
+
+        # Estää ohjelman kaatumisen virheellisen syötteen vuoksi
+        except mysql.connector.errors.ProgrammingError:
+            print(f"Location not found, try again")
+            valid_input = False
 
     # Lasketaan, riittääkö range halutulle lentokentälle
     if cursor.rowcount > 0:
         destination_distance = int(distance.distance(player_coord(), res_icao_coord).km)
 
-        if destination_distance <= int(player_range()[0]):
+        if destination_distance <= int(player_range()):
 
             if new_location == player_location()[0]:
                 print(f'\nYou are already at {new_location}, please try again')
@@ -252,26 +274,29 @@ def destination():
 
             else:
                 sql_update_location = (f"UPDATE player SET location = '{new_location}'")
+                sql_select_location = (f"SELECT municipality, ident FROM airport WHERE ident = '{new_location}'")
                 cursor = yhteys.cursor()
                 cursor.execute(sql_update_location)
-                print(f"\nYou have arrived at {new_location}")
+                cursor.execute(sql_select_location)
+                res_select_location = cursor.fetchone()
+                print(f"\nYou have arrived at {res_select_location[0]} ({res_select_location[1]}), welcome!")
 
                 if goal() < 9:
-                    old_range = int(player_range()[0])
+                    old_range = int(player_range())
                     new_range = old_range - destination_distance
                     sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
                     cursor = yhteys.cursor()
                     cursor.execute(sql_new_range)
 
                 elif goal() >= 9:
-                    old_range = int(player_range()[0])
-                    new_range = old_range - destination_distance*1.2
+                    old_range = int(player_range())
+                    new_range = int(old_range - destination_distance*1.2)
                     sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
                     cursor = yhteys.cursor()
                     cursor.execute(sql_new_range)
 
 
-        elif destination_distance > int(player_range()[0]):
+        elif destination_distance > int(player_range()):
             print(f"You don't have enough range to travel to this destination ")
             destination()
 
@@ -350,7 +375,7 @@ def quiz():
                     sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 100"
                     cursor.execute(sql_quiz_fuel)
                     print(f"\nYour answer - {correct_answer} - is right!"
-                          f"\nYou gained 100km amount of range and your new range is {player_range()[0]} kilometers\n")
+                          f"\nYou gained 100km amount of range and your new range is {player_range()} kilometers\n")
 
                     answered = True
 
@@ -365,11 +390,11 @@ def quiz():
                     print(f"\nYour answer was wrong..."
                           f"\nThe right answer was {correct_answer}")
 
-                    if int(player_range()[0]) > 0:
+                    if int(player_range()) > 0:
                         print(f"\nYou just lost 50km amount of range and "
-                              f"your new range is {player_range()[0]} kilometers\n")
+                              f"your new range is {player_range()} kilometers\n")
 
-                    elif int(player_range()[0]) <= 0:
+                    elif int(player_range()) <= 0:
                         print(f"\nYou just lost 100km amount of range and "
                               f"ran out of range\n")
 
@@ -548,6 +573,8 @@ def update_goal():
         sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
+        print(f"You gained +500km range because you rescued patients!")
+        pause()
 
     if helicopter() == 0:
         sql_goal = "UPDATE player SET patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
@@ -583,23 +610,20 @@ if new_game == "N":
 if new_game == "Y":
     print(f"Congratulations! You're about to start a rescue mission.")
 
-    # Backlore
-    #backlore = input('\nWould you like to read the backlore? y/n: ').upper()
-    #if backlore == "Y":
+    # Pelaaja valitsee, haluaako lukea taustatarinan
     lore()
 
-    # säännöt pelaajalle
+    # Säännöt pelaajalle
     print('Game goal: save the patients and return them to the home hospital')
 
     start()  # resetoi tietokannan peliä varten
-    quiz_randomizer()
+    quiz_randomizer() # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
-    acute_location = acute_randomizer()
-    patient_locations = patient_randomizer(acute_location)
-    #acute_location = acute_randomizer()
+    acute_location = acute_randomizer() # arpoo akuuttitapauksen sijainnin
+    patient_locations = patient_randomizer(acute_location) # arpoo ensimmäiset 3 pelastettavaa potilasta
 
-    # GAME LOOP - KESKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    # Boolean
     game_over = False
     win = False
 
@@ -619,19 +643,25 @@ if new_game == "Y":
 
         # game loop jatkuu jos pelitavoite ei ole täynnä
         elif goal() < 12:
-            # jatka = input('Press enter to continue your mission...')
 
-            pause()
 
+            # Pause-funktio pyytää pelaajaa painamaan enteriä jatkaakseen
+            # Estämään liian pitkää tekstiä terminalissa kerralla
+            if player_location()[0] != 'ENTR':
+                pause()
+
+            # Tulostaa etäisyydet eri sijainteihin
             distance_lista = distances()
 
-            # peli päättyy jos range ei riitä yhteenkään locationiin
+            # Peli päättyy jos range ei riitä yhteenkään locationiin
             if len(distance_lista) == 0:
                 game_over = True
 
+            # Peli jatkuu, jos range riittää väh. 1 sijaintiin
             else:
 
-                # kertoo pelaajalle helikopterin potilastilanteen
+                # Kertoo pelaajalle helikopterin potilastilanteen, mikäli ei ole kotisairaalassa (ENTR)
+
                 if player_location()[0] != 'ENTR':
                     if helicopter() < 1:
                         print(f"You don't have any patients in the helicopter and you still have space for 3 patients")
@@ -643,27 +673,31 @@ if new_game == "Y":
                         print(f"Patient picked up: {helicopter()} - helicopter is full "
                               f"and you have to return to the home hospital")
 
-                home_hospital()  # pelaajan ja kotisairaalan etäisyys:
+                home_hospital()  # Pelaajan ja kotisairaalan etäisyys:
 
-                patient_icao(patient_locations)  # tulostetaan potilaiden sijainnit
+                patient_icao(patient_locations)  # Tulostetaan potilaiden sijainnit
 
-                # print(f"Saved patients {goal()}")  # kuinka monta potilasta on saatu sairaalaan
+                # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
 
-                #if goal() != :
-                #    patient_aku()
-                #    print('you have to go to home bitch!')
+                if player_location()[0] == 'ENTR':
+
+                    print(f"In total {goal()}/12 patients rescued to the hospital")
 
                 if goal() in (3, 6, 9):
 
-                    print(f"In total {goal()}/12 patients rescued to the hospital")
+                    # print(f"In total {goal()}/12 patients rescued to the hospital")
+
+                    # Peli vaikeutuu, kun 75% potilaista on viety sairaalaan
 
                     if goal() >= 9:
                         print(f"\nOh no! The weather in the mountains has got really awful. \n"
                               f"The helicopter uses now 20% more fuel because of the strong headwind.\n")
 
+                    # Pelaaja saa uudet 3 kohdetta, kun kaikki 3 edellistä on käyty ja viety sairaalaan
+
                     if player_location()[0] == 'ENTR':
-                        patient_locations = patient_randomizer(acute_location)  # arpoo 3 potilasta
-                        patient_icao(patient_locations)
+                        patient_locations = patient_randomizer(acute_location)  # Arpoo 3 potilasta
+                        patient_icao(patient_locations) # Tulostaa potilastlistan
 
                     destination()
 
@@ -671,9 +705,13 @@ if new_game == "Y":
 
                     destination()  # mahdolliset kohteet, mihin pelaaja tahtoo mennä
 
+    # Voitto
+
     if win == True:
         print(
             "Congratulations! You have completed the game. \nYou have saved all the patients and you are hailed as the hero of Norway.")
+
+    # Gameover
 
     if game_over == True:
         print(f"Game over. You are out of range. :(")
