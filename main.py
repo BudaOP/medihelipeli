@@ -3,13 +3,16 @@ import mysql.connector
 from mysql.connector import errorcode
 from geopy import distance
 from tabulate import tabulate
+from termcolor import colored
+from intro import intro
+from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown
 
 yhteys = mysql.connector.connect(
     host='127.0.0.1',
     port=3306,
     database='flight_game',
     user='root',
-    password='Astr0n4utt1?',
+    password='KierukkaKupariNöö7!',
     autocommit=True
 )
 
@@ -41,8 +44,7 @@ def start():
     cursor.execute(sql_start_quiz)
     cursor.execute(sql_start_used)
 
-    input(f'Press enter to embark on your journey, {screen_name}...\n')
-    return
+    return screen_name
 
 
 def pause():
@@ -75,6 +77,7 @@ def quiz_randomizer():
 def game_start():
     # Pelaaja valitsee, haluaako valita pelin
     # Loop jatkuu, kunnes pelaaja antaa vastaukseksi joko Y (kyllä) tai N (ei)
+    intro()
 
     valid_input = False
 
@@ -91,7 +94,7 @@ def game_start():
     return game_input
 
 
-def lore():
+def backlore():
 
     valid_input = False
 
@@ -101,15 +104,7 @@ def lore():
 
         if backlore == "Y":
             valid_input = True
-            print(f"Medihelipeli: A Race Against Time \nTime is running out. "
-                  f"Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF, \nyou are set on a dangerous patient saving journey "
-                  f"in the beautiful landscape of Norway. \nYour helicopter's fuel is limited, and each rescue mission consumes a significant portion of it. "
-                  f"The goal is to save all twelve patients before you run out of fuel. "
-                  f"\nEach rescue attempt must be carefully calculated to maximize fuel efficiency while minimizing the time taken to reach and rescue the patients. "
-                  f"\nThere are three kinds of danger levels (1-3). The level depends on the severity of the patient's injury. "
-                  f"Depending on the severity of the injury, the level changes. \nIf you manage to save all twelve patients within the fuel constraints, "
-                  f"you're hailed as a hero, and the skies of Norway echo with the stories of your courage. \nHowever if your fuel runs out before completing the rescue missions, "
-                  f"your journey ends, and the fate of the remaining patients remains uncertain.")
+            lore()
         elif backlore == "N":
             valid_input = True
         else:
@@ -166,6 +161,12 @@ def distances():
             if comparison <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
+        # Format the table with tabulate
+        table = tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)'], tablefmt="fancy_grid")
+
+        # Add color to the table using termcolor
+        styled_table = colored(table, "blue")
+
     elif goal() >= 9:
         for i in range(cursor.rowcount):
             comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
@@ -174,10 +175,16 @@ def distances():
             if int(comparison) <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
+        # Format the table with tabulate
+        table = tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)'], tablefmt="fancy_grid")
+
+        # Add color to the table using termcolor
+        styled_table = colored(table, "blue")
+
 
     if len(lista) > 0:
         print(f"\nThese locations are within your range:")
-        print(tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)']))
+        print(styled_table)
     elif len(lista) == 0:
         print(f"No location is within your range.")
     return lista
@@ -202,18 +209,17 @@ def home_hospital():
     res_home_coord = cursor.fetchall()
 
     # ohjelma kertoo jos pelaaja on kotisairaalassa tai mikä olisi etäisyys sinne
-
     comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
 
     if comparison_home == 0:
-        print(f"\nYou are at the home hospital")
+        colored_text(f"\nYou are at the home hospital")
 
     #elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
     #          f"but you can't go home without any rescued patients")
 
     else:
-        print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers")
+        colored_text(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers")
 
     return
 
@@ -231,13 +237,13 @@ def player_range():
 
 # pelaaja valitsee mihin haluaa siirtyä seuraavaksi
 def destination():
-    print(f"Your range is {player_range()} kilometers ")
+    markdown(f"Your range is {player_range()} kilometers ")
     valid_input = False
 
     # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
 
     while not valid_input:
-        new_location = input('Type the ICAO code: ').upper()
+        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly to that country.').upper()
         sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
 
         # Suorittaa sql-komennon
@@ -479,16 +485,16 @@ def patient_icao(patient_list):
             patient_list.remove(res_patient_icao[i][0])
 
     if len(patient_list) == 3:
-        print(f"Patients are located at {patient_list[0]}, {patient_list[1]} and {patient_list[2]}")
+        markdown(f"Patients are located at {patient_list[0]}, {patient_list[1]} and {patient_list[2]}")
 
     elif len(patient_list) == 2:
-        print(f"Patients are located at {patient_list[0]} and {patient_list[1]}")
+        markdown(f"Patients are located at {patient_list[0]} and {patient_list[1]}")
 
     elif len(patient_list) == 1:
-        print(f"Last patient to be saved is located at {patient_list[0]}")
+        markdown(f"Last patient to be saved is located at {patient_list[0]}")
 
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
-        print(f"No patients to be saved this time - return to home to get new patient list")
+        markdown(f"No patients to be saved this time - return to home to get new patient list")
 
     return
 
@@ -611,12 +617,12 @@ if new_game == "Y":
     print(f"Congratulations! You're about to start a rescue mission.")
 
     # Pelaaja valitsee, haluaako lukea taustatarinan
-    lore()
-
+    backlore()
+    screen_name = start() # resetoi tietokannan peliä varten
     # Säännöt pelaajalle
-    print('Game goal: save the patients and return them to the home hospital')
+    cool_field('Game goal',f'Finally {screen_name} is arrived! Save the patients and return them to the home hospital bla bla bla')
+    starting = input('Press Enter to embark on your journey, Dr. McLovin: ')
 
-    start()  # resetoi tietokannan peliä varten
     quiz_randomizer() # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
     acute_location = acute_randomizer() # arpoo akuuttitapauksen sijainnin
@@ -681,7 +687,7 @@ if new_game == "Y":
 
                 if player_location()[0] == 'ENTR':
 
-                    print(f"In total {goal()}/12 patients rescued to the hospital")
+                    markdown(f"In total {goal()}/12 patients rescued to the hospital")
 
                 if goal() in (3, 6, 9):
 
