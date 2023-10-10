@@ -46,13 +46,13 @@ def formatted_notitle(text):
     # Print the table with a cool font
     console.print(table)
 
-def colored_text(text):
-    color = "\033[95m" #color can be changed - ?m
+def colored_text(text, color):
+    text_color = color #color can be changed - ?m
     bold = "\033[1m"
     reset = "\033[0m"
 
     # Combine the escape codes with the text
-    formatted_text = f"{color}{bold}{text}{reset}"
+    formatted_text = f"{text_color}{bold}{text}{reset}"
 
     # Print the colored and underlined text
     print(formatted_text)
