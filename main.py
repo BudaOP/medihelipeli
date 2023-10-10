@@ -16,17 +16,23 @@ yhteys = mysql.connector.connect(
     autocommit=True
 )
 
+# Colors
+blue = "\033[95m"
+red = "\033[91m"
+green = "\033[92m"
+yellow = "\033[95m"
 
 # FUNKTIOT
 
 
 def start():
     screen_name = input("\nWhat's your name? "
-                        "(Press enter to set default hero name) \n"
+                        "(Press enter to set a default hero name) \n"
                         "Type here: ")
 
     if screen_name == "":
         screen_name = "Dr. McLovin"
+
 
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
@@ -82,7 +88,7 @@ def game_start():
     valid_input = False
 
     while not valid_input:
-        game_input = input("Would you like to start a game? (y/n): ").upper()
+        game_input = input("Would you like to start a new game? (y/n): ").upper()
 
         if game_input == "Y" or game_input == "N":
             valid_input = True
@@ -212,14 +218,14 @@ def home_hospital():
     comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
 
     if comparison_home == 0:
-        colored_text(f"\nYou are at the home hospital")
+        colored_text(f"\nYou are at the home hospital", green)
 
     #elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
     #          f"but you can't go home without any rescued patients")
 
     else:
-        colored_text(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers")
+        colored_text(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers", green)
 
     return
 
@@ -243,7 +249,7 @@ def destination():
     # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
 
     while not valid_input:
-        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly to that country.').upper()
+        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly there.').upper()
         sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
 
         # Suorittaa sql-komennon
@@ -575,14 +581,14 @@ def goal():
 # päivittää pelaajan tietoja kotisairaalassa
 # range lisääntyy vain, mikäli pelaaja vie sairaalaan myös potilaita
 def update_goal():
-    if helicopter() != 0:
+    if helicopter() == 3:
         sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
-        print(f"You gained +500km range because you rescued patients!")
+        print(f"You gained 500km of range because you rescued the patients!")
         pause()
 
-    if helicopter() == 0:
+    elif helicopter() < 3:
         sql_goal = "UPDATE player SET patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
@@ -604,6 +610,32 @@ def patient_aku():
 
     return res_patient_loc
 
+def final_boss():
+
+    answered = False
+    print('Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack. '
+          '\nYou are the only one that can help him.')
+    print('If someone is having an asthma attack, what is the most important thing to do to help them?')
+
+    while not answered:
+        answer = input('a) Give them something to eat b) Give them a hug c) Help them to use their inhaler'
+                       '\nWrite your answer here: ').upper()
+
+        if answer not in ('A', 'B', 'C'):
+            answered = False
+            print(f"Invalid input, please try again... ")
+            continue
+
+        elif answer == "C":
+            answered = True
+            game_end = "win"
+
+        elif answer == 'A' or answer == 'B':
+            answered = True
+            game_end = "lose"
+
+    return game_end
+
 # PELIN ALOITUS
 
 
@@ -611,17 +643,21 @@ def patient_aku():
 new_game = game_start()
 
 if new_game == "N":
-    print(f"Oh no! You missed on a life-changing mission! ")
+    colored_text(f"Oh no! You missed on a life-changing mission! ", red)
 
 if new_game == "Y":
-    print(f"Congratulations! You're about to start a rescue mission.")
+    colored_text(f"Congratulations! You're about to start a rescue mission.", green)
 
     # Pelaaja valitsee, haluaako lukea taustatarinan
     backlore()
     screen_name = start() # resetoi tietokannan peliä varten
     # Säännöt pelaajalle
-    cool_field('Game goal',f'Finally {screen_name} is arrived! Save the patients and return them to the home hospital bla bla bla')
-    starting = input('Press Enter to embark on your journey, Dr. McLovin: ')
+    cool_field('Game rules',f"\nSave all the patients from different cities and return them to the home hospital."
+          f"\nFor every round you gain more range to save more patients."
+          f"\n\nThe helicopter has a maximum capacity of 3 patients."
+          f"\n\nThe game also contains quiz games, where you have a chance to gain more range."
+          f"\n\nThe game ends when you have saved all the patients or you ran out of range.")
+    starting = input(f'Press Enter to start on your journey, {screen_name}... ')
 
     quiz_randomizer() # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
@@ -645,7 +681,11 @@ if new_game == "Y":
 
         # game loop päättyy kun pelaaja saa pelitavoitteen täyteen
         if goal() >= 12:
-            win = True
+            
+            if final_boss() == "win":
+                win = True
+            else:
+                game_over = True
 
         # game loop jatkuu jos pelitavoite ei ole täynnä
         elif goal() < 12:
@@ -687,7 +727,7 @@ if new_game == "Y":
 
                 if player_location()[0] == 'ENTR':
 
-                    markdown(f"In total {goal()}/12 patients rescued to the hospital")
+                    markdown(f"{goal()} out of 12 patients rescued to the hospital")
 
                 if goal() in (3, 6, 9):
 
@@ -697,7 +737,7 @@ if new_game == "Y":
 
                     if goal() >= 9:
                         print(f"\nOh no! The weather in the mountains has got really awful. \n"
-                              f"The helicopter uses now 20% more fuel because of the strong headwind.\n")
+                              f"The helicopter uses now 20% more fuel due to strong headwind.\n")
 
                     # Pelaaja saa uudet 3 kohdetta, kun kaikki 3 edellistä on käyty ja viety sairaalaan
 
