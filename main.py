@@ -218,7 +218,7 @@ def home_hospital():
     comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
 
     if comparison_home == 0:
-        colored_text(f"\nYou are at the home hospital (Trondheim, ENTR)", green)
+        colored_text(f"\nYou are at the home hospital: Trondheim (ENTR)", green)
 
     # elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
