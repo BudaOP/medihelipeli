@@ -526,16 +526,18 @@ def patient_icao(patient_list, patient_list_mun):
     # tulostaa jäljellä olevien potilaiden listan
     # kehottaa palaamaan kotiin, jos kaikki potilaat on jo haettu
 
+    separate = ' • '
+    result = separate.join(str(value) + " (" + str(key) + ")" for key, value in patient_list_mun.items())
+
     if len(patient_list) > 0:
         if len(patient_list_mun) > 1:
-            markdown(f"Patients are located at")
+            markdown(f"Patients are located at \n  {result}")
 
         elif len(patient_list_mun) == 1:
-            markdown(f"Patient is located at")
+            markdown(f"Patient is located at \n  {result}")
 
-        separate = ' • '
-        result = separate.join(str(value) + " (" + str(key) + ")" for key, value in patient_list_mun.items())
-        markdown(f'{result}')
+
+        # markdown(f'{result}')
 
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
         markdown(f"No patients to be saved this time - return to home to get new patient list")
@@ -565,9 +567,9 @@ def rescue_patient(patient_list):
             sql_rescue_patient = f"SELECT id FROM patient WHERE rescued = 0 AND location = '{player_loc}'"
             cursor = yhteys.cursor()
             cursor.execute(sql_rescue_patient)
-            res_rescue_patient = cursor.fetchall()
+            res_rescue_patient = cursor.fetchone()
 
-            update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0][0]}'"
+            update_rescue_patient = f"UPDATE patient SET rescued = 1 WHERE id = '{res_rescue_patient[0]}'"
             update_patient_qty = f"UPDATE player SET patient_qty = (patient_qty + 1) where id = 1"
             cursor.execute(update_patient_qty)
             cursor.execute(update_rescue_patient)
@@ -789,6 +791,7 @@ if new_game == "Y":
 
                     if player_location()[0] == 'ENTR':
                         patient_locations = patient_randomizer(acute_location)  # Arpoo 3 potilasta
+                        patient_municipalities = patient_municipality(patient_locations)
                         patient_icao(patient_locations, patient_municipalities)  # Tulostaa potilastlistan
 
                     destination()
