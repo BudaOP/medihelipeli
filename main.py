@@ -37,7 +37,7 @@ def start():
 
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
-                 f"range_km = 10000 WHERE id = 1")
+                 f"range_km = 4000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
     sql_start_quiz = f"UPDATE airport SET quiz = 0"
     sql_start_used = f"UPDATE quiz SET used = 0"
@@ -216,14 +216,14 @@ def home_hospital():
     comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
 
     if comparison_home == 0:
-        colored_text(f"\nYou are at the home hospital", green)
+        colored_text(f"\nYou are at the home hospital (Trondheim, ENTR)", green)
 
     #elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
     #          f"but you can't go home without any rescued patients")
 
     else:
-        colored_text(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers", green)
+        colored_text(f"\nYour distance to the home hospital (Trondheim, ENTR) is {comparison_home} kilometers", green)
 
     return
 
@@ -247,7 +247,7 @@ def destination():
     # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
 
     while not valid_input:
-        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly there.').upper()
+        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly there\nor type "map" to open the map of Norway.').upper()
         sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
 
         # Suorittaa sql-komennon
@@ -553,7 +553,8 @@ def rescue_patient(patient_list):
                     elif helicopter() == 2:
                         print(f"You saved 1 patient from avalanche")
 
-                    print(f"Due to the acute situation you flew directly back to the home hospital.\n"
+                    print(f"Due to the acute avalanche situation in the mountains, \n"
+                          f"you flew directly back to the home hospital.\n"
                           f"The avalanche victims are now safe, thanks to you, hero!\n")
                     update_player_home = f"UPDATE player SET location = 'ENTR' where id = 1"
                     cursor.execute(update_player_home)
