@@ -20,8 +20,9 @@ yhteys = mysql.connector.connect(
 blue = "\033[95m"
 red = "\033[91m"
 green = "\033[92m"
-yellow = "\033[95m"
-pink = "\033[95m"
+yellow = "\033[33m"
+pink = "\033[36m"
+reset = "\033[0m"
 
 # FUNKTIOT
 
@@ -334,7 +335,7 @@ def quiz():
 
     print("\nQUIZ GAME\nThere happens to be quiz game on your location! "
           "\nThe questions are Norway related\n\nThe rules are quite simple "
-          "\nRight answer you gain 100km amount of range \nWrong answer you lose 50km amount of range")
+          "\nRight answer you gain 300km amount of range \nWrong answer you lose 150km amount of range")
 
     # etsii kysymyksen, jota ei oel vielä käytetty
     while randomizing:
@@ -385,19 +386,19 @@ def quiz():
             while not answered:
 
                 played = True
-                answer = input("Enter your answer: ").upper()
+                answer = input("Enter your answer: ").lower()
 
-                if answer not in ("A", "B", "C"):
+                if answer not in ("a", "b", "c"):
                     print(f"Invalid input, please try again")
 
                     answered = False
 
                 elif answer == correct_answer:
 
-                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 100"
+                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 300"
                     cursor.execute(sql_quiz_fuel)
                     print(f"\nYour answer - {correct_answer} - is right!"
-                          f"\nYou gained 100km amount of range and your new range is {player_range()} kilometers\n")
+                          f"\nYou gained 300km amount of range and your new range is {player_range()} kilometers\n")
 
                     answered = True
 
@@ -407,17 +408,17 @@ def quiz():
 
                 elif answer != correct_answer:
 
-                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 50"
+                    sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 150"
                     cursor.execute(sql_quiz_fuel)
                     print(f"\nYour answer was wrong..."
                           f"\nThe right answer was {correct_answer}")
 
                     if int(player_range()) > 0:
-                        print(f"\nYou just lost 50km amount of range and "
+                        print(f"\nYou just lost 150km amount of range and "
                               f"your new range is {player_range()} kilometers\n")
 
                     elif int(player_range()) <= 0:
-                        print(f"\nYou just lost 100km amount of range and "
+                        print(f"\nYou just lost 150km amount of range and "
                               f"ran out of range\n")
 
                     answered = True
@@ -673,7 +674,7 @@ if new_game == "Y":
     # Meidän easter egg hihi
     if screen_name.upper() == 'TINJA':
         embark = 'embark'
-        starting = input(f'Press Enter to {colored(embark, "yellow")} on your journey, {screen_name}... ')
+        starting = input(f'Press Enter to {pink}{embark}{reset} on your journey, {screen_name}... ')
     else:
         starting = input(f'Press Enter to start on your journey, {screen_name}... ')
 
