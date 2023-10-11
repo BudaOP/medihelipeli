@@ -6,7 +6,6 @@ from tabulate import tabulate
 from termcolor import colored
 from intro import intro
 from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown, norway_map
-import pprint
 
 yhteys = mysql.connector.connect(
     host='127.0.0.1',
