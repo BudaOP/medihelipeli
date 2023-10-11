@@ -6,13 +6,14 @@ from tabulate import tabulate
 from termcolor import colored
 from intro import intro
 from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown, norway_map
+import pprint
 
 yhteys = mysql.connector.connect(
     host='127.0.0.1',
     port=3306,
     database='flight_game',
     user='root',
-    password='KierukkaKupariNöö7!',
+    password='Astr0n4utt1?',
     autocommit=True
 )
 
@@ -24,6 +25,7 @@ yellow = "\033[33m"
 pink = "\033[36m"
 reset = "\033[0m"
 
+
 # FUNKTIOT
 
 
@@ -34,7 +36,6 @@ def start():
 
     if screen_name == "":
         screen_name = "Dr. McLovin"
-
 
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
                  f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
@@ -103,7 +104,6 @@ def game_start():
 
 
 def backlore():
-
     valid_input = False
 
     while not valid_input:
@@ -130,6 +130,7 @@ def player_coord():
     cursor.execute(sql_player_coord)
     res_player_coord = cursor.fetchall()
     return res_player_coord
+
 
 def distances():
     # ohjelma hakee kaikkien lentokenttien koordinaatit (pl. pelaajan sijainti)
@@ -177,7 +178,7 @@ def distances():
     elif goal() >= 9:
         for i in range(cursor.rowcount):
             comparison = int(distance.distance({player_coord()[0]}, {res_airport_coord[i]}).km)
-            comparison = int(comparison*1.2)
+            comparison = int(comparison * 1.2)
 
             if int(comparison) <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
@@ -219,7 +220,7 @@ def home_hospital():
     if comparison_home == 0:
         colored_text(f"\nYou are at the home hospital (Trondheim, ENTR)", green)
 
-    #elif helicopter() == 0:
+    # elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
     #          f"but you can't go home without any rescued patients")
 
@@ -248,7 +249,8 @@ def destination():
     # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
 
     while not valid_input:
-        new_location = input_field('Choose your destination','Type an ICAO code from the list below to fly there\nor type "map" to open the map of Norway.').upper()
+        new_location = input_field('Choose your destination',
+                                   'Type an ICAO code from the list below to fly there\nor type "map" to open the map of Norway.').upper()
         sql_icao_coord = f"SELECT latitude_deg, longitude_deg FROM airport WHERE ident = '{new_location}'"
 
         # Suorittaa sql-komennon
@@ -261,7 +263,7 @@ def destination():
                 norway_map()
                 valid_input = False
                 home_hospital()  # Pelaajan ja kotisairaalan etäisyys:
-                patient_icao(patient_locations)  # Tulostetaan potilaiden sijainnit
+                patient_icao(patient_locations, patient_municipalities)  # Tulostetaan potilaiden sijainnit
                 # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
 
                 if player_location()[0] == 'ENTR':
@@ -313,7 +315,7 @@ def destination():
 
                 elif goal() >= 9:
                     old_range = int(player_range())
-                    new_range = int(old_range - destination_distance*1.2)
+                    new_range = int(old_range - destination_distance * 1.2)
                     sql_new_range = (f"UPDATE player SET range_km = '{new_range}'")
                     cursor = yhteys.cursor()
                     cursor.execute(sql_new_range)
@@ -458,6 +460,7 @@ def patient_location():
 
     return
 
+
 def acute_randomizer():
     cursor = yhteys.cursor()
 
@@ -465,6 +468,7 @@ def acute_randomizer():
     cursor.execute(sql_acute)
     res_acute = cursor.fetchone()
     return res_acute
+
 
 # arpoo 3 potilaan tiedot, joita ei ole vielä pelastettu
 def patient_randomizer(acute_location):
@@ -488,27 +492,50 @@ def patient_randomizer(acute_location):
 
     return patient_list
 
+def patient_municipality(patient_list):
 
-# tulostaa jäljellä olevien pelastettavien potilaiden sijainnit
-def patient_icao(patient_list):
+    # kokoaa dictionaryn, jossa näkyy jäljellä olevien potilaiden sijainnin icao ja nimi
+
+    patient_list_mun = {}
+
+    sql_patient_mun = (f"SELECT ident, municipality FROM airport")
+    cursor = yhteys.cursor()
+    cursor.execute(sql_patient_mun)
+    res_patient_mun = cursor.fetchall()
+
+    for i in range(cursor.rowcount):
+        if res_patient_mun[i][0] in patient_list:
+            patient_list_mun.update({res_patient_mun[i][0]: res_patient_mun[i][1]})
+
+    return patient_list_mun
+
+def patient_icao(patient_list, patient_list_mun):
+
+    # tulostaa jäljellä olevien pelastettavien potilaiden sijainnit
+
     sql_patient_icao = f"SELECT location FROM patient WHERE rescued = 1"
     cursor = yhteys.cursor()
     cursor.execute(sql_patient_icao)
     res_patient_icao = cursor.fetchall()
 
+    # poistaa jäljellä olevien potilaiden listasta jo haetut
+
     for i in range(cursor.rowcount):
+        if res_patient_icao[i][0] in patient_list and res_patient_icao[i][0] in patient_list_mun:
+            patient_list_mun.pop(res_patient_icao[i][0])
 
-        if res_patient_icao[i][0] in patient_list:
-            patient_list.remove(res_patient_icao[i][0])
+    # tulostaa jäljellä olevien potilaiden listan
+    # kehottaa palaamaan kotiin, jos kaikki potilaat on jo haettu
 
-    if len(patient_list) == 3:
-        markdown(f"Patients are located at {patient_list[0]}, {patient_list[1]} and {patient_list[2]}")
+    if len(patient_list_mun) > 1:
+        markdown(f"Patients are located at")
+        for key in patient_list_mun.keys():
+            markdown(f'{patient_list_mun[key]} ({key})')
 
-    elif len(patient_list) == 2:
-        markdown(f"Patients are located at {patient_list[0]} and {patient_list[1]}")
-
-    elif len(patient_list) == 1:
-        markdown(f"Last patient to be saved is located at {patient_list[0]}")
+    elif len(patient_list_mun) == 1:
+        markdown(f"Patient is located at")
+        for key in patient_list_mun.keys():
+            markdown(f'{patient_list_mun[key]} ({key})')
 
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
         markdown(f"No patients to be saved this time - return to home to get new patient list")
@@ -606,6 +633,7 @@ def update_goal():
         cursor.execute(sql_goal)
     return
 
+
 def patient_aku():
     boolean = True
 
@@ -622,8 +650,8 @@ def patient_aku():
 
     return res_patient_loc
 
-def final_boss():
 
+def final_boss():
     answered = False
     print('Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack. '
           '\nYou are the only one that can help him.')
@@ -648,6 +676,7 @@ def final_boss():
 
     return game_end
 
+
 # PELIN ALOITUS
 
 
@@ -662,14 +691,14 @@ if new_game == "Y":
 
     # Pelaaja valitsee, haluaako lukea taustatarinan
     backlore()
-    screen_name = start() # resetoi tietokannan peliä varten
+    screen_name = start()  # resetoi tietokannan peliä varten
 
     # Säännöt pelaajalle
-    cool_field('Game rules',f"\nSave all the patients from different cities and return them to the home hospital."
-          f"\nFor every round you gain more range to save more patients."
-          f"\n\nThe helicopter has a maximum capacity of 3 patients."
-          f"\n\nThe game also contains quiz games, where you have a chance to gain more range."
-          f"\n\nThe game ends when you have saved all the patients or you ran out of range.")
+    cool_field('Game rules', f"\nSave all the patients from different cities and return them to the home hospital."
+                             f"\nFor every round you gain more range to save more patients."
+                             f"\n\nThe helicopter has a maximum capacity of 3 patients."
+                             f"\n\nThe game also contains quiz games, where you have a chance to gain more range."
+                             f"\n\nThe game ends when you have saved all the patients or you ran out of range.")
 
     # Meidän easter egg hihi
     if screen_name.upper() == 'TINJA':
@@ -678,11 +707,11 @@ if new_game == "Y":
     else:
         starting = input(f'Press Enter to start on your journey, {screen_name}... ')
 
-    quiz_randomizer() # arpoo quiz-minipelien sijainnit
+    quiz_randomizer()  # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
-    acute_location = acute_randomizer() # arpoo akuuttitapauksen sijainnin
-    patient_locations = patient_randomizer(acute_location) # arpoo ensimmäiset 3 pelastettavaa potilasta
-
+    acute_location = acute_randomizer()  # arpoo akuuttitapauksen sijainnin
+    patient_locations = patient_randomizer(acute_location)  # arpoo ensimmäiset 3 pelastettavaa potilasta
+    patient_municipalities = patient_municipality(patient_locations)
 
     # Boolean
     game_over = False
@@ -700,7 +729,7 @@ if new_game == "Y":
 
         # game loop päättyy kun pelaaja saa pelitavoitteen täyteen
         if goal() >= 12:
-            
+
             if final_boss() == "win":
                 win = True
             else:
@@ -708,7 +737,6 @@ if new_game == "Y":
 
         # game loop jatkuu jos pelitavoite ei ole täynnä
         elif goal() < 12:
-
 
             # Pause-funktio pyytää pelaajaa painamaan enteriä jatkaakseen
             # Estämään liian pitkää tekstiä terminalissa kerralla
@@ -740,12 +768,11 @@ if new_game == "Y":
 
                 home_hospital()  # Pelaajan ja kotisairaalan etäisyys:
 
-                patient_icao(patient_locations)  # Tulostetaan potilaiden sijainnit
+                patient_icao(patient_locations, patient_municipalities)  # Tulostetaan potilaiden sijainnit
 
                 # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
 
                 if player_location()[0] == 'ENTR':
-
                     markdown(f"{goal()} out of 12 patients rescued to the hospital")
 
                 if goal() in (3, 6, 9):
@@ -762,7 +789,7 @@ if new_game == "Y":
 
                     if player_location()[0] == 'ENTR':
                         patient_locations = patient_randomizer(acute_location)  # Arpoo 3 potilasta
-                        patient_icao(patient_locations) # Tulostaa potilastlistan
+                        patient_icao(patient_locations, patient_municipalities)  # Tulostaa potilastlistan
 
                     destination()
 
