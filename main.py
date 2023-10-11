@@ -5,7 +5,7 @@ from geopy import distance
 from tabulate import tabulate
 from termcolor import colored
 from intro import intro
-from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown
+from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown, norway_map
 
 yhteys = mysql.connector.connect(
     host='127.0.0.1',
@@ -21,6 +21,7 @@ blue = "\033[95m"
 red = "\033[91m"
 green = "\033[92m"
 yellow = "\033[95m"
+pink = "\033[95m"
 
 # FUNKTIOT
 
@@ -121,19 +122,18 @@ def backlore():
 
 def player_coord():
     # pelaajan sijainnin koordinaatit
-    sql_player_coord = (f"SELECT latitude_deg, longitude_deg from airport"
-                        f" where ident in (select location from player)")
+    sql_player_coord = (f"SELECT latitude_deg, longitude_deg FROM airport "
+                        f"INNER JOIN player ON airport.ident = player.location;")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_player_coord)
     res_player_coord = cursor.fetchall()
     return res_player_coord
 
-
 def distances():
     # ohjelma hakee kaikkien lentokenttien koordinaatit (pl. pelaajan sijainti)
-    sql_airport_coord = (f"SELECT latitude_deg, longitude_deg from airport"
-                         f" where ident not in (select location from player) AND ident != 'ENTR'")
+    sql_airport_coord = (f"SELECT latitude_deg, longitude_deg FROM airport"
+                         f" WHERE ident NOT IN (SELECT location FROM player) AND ident != 'ENTR'")
 
     cursor = yhteys.cursor()
     cursor.execute(sql_airport_coord)
@@ -181,16 +181,14 @@ def distances():
             if int(comparison) <= int(float(player_range())):
                 lista.append([res_municipality[i][0], res_icao[i][0], comparison])
 
-        # Format the table with tabulate
+        # Listan muotoilu selkeäksi taulukoksi
         table = tabulate(lista, headers=['Location', 'ICAO', 'Distance(km)'], tablefmt="fancy_grid")
-
-        # Add color to the table using termcolor
-        styled_table = colored(table, "blue")
-
+        # Lisätää
+        # styled_table = colored(table, "blue")
 
     if len(lista) > 0:
         print(f"\nThese locations are within your range:")
-        print(styled_table)
+        print(table)
     elif len(lista) == 0:
         print(f"No location is within your range.")
     return lista
@@ -258,7 +256,19 @@ def destination():
             cursor.execute(sql_icao_coord)
             res_icao_coord = cursor.fetchall()
 
-            if cursor.rowcount == 0:
+            if new_location == "MAP":
+                norway_map()
+                valid_input = False
+                home_hospital()  # Pelaajan ja kotisairaalan etäisyys:
+                patient_icao(patient_locations)  # Tulostetaan potilaiden sijainnit
+                # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
+
+                if player_location()[0] == 'ENTR':
+                    markdown(f"{goal()} out of 12 patients rescued to the hospital")
+
+                markdown(f"Your range is {player_range()} kilometers ")
+
+            elif cursor.rowcount == 0:
                 print(f"Location not found, try again")
                 valid_input = False
 
@@ -312,9 +322,9 @@ def destination():
             print(f"You don't have enough range to travel to this destination ")
             destination()
 
-    if cursor.rowcount == 0:
-        print(f"Please try again")
-        destination()
+    # if cursor.rowcount == 0 :
+    #     print(f"Please try again")
+    #     destination()
     return
 
 
@@ -651,13 +661,20 @@ if new_game == "Y":
     # Pelaaja valitsee, haluaako lukea taustatarinan
     backlore()
     screen_name = start() # resetoi tietokannan peliä varten
+
     # Säännöt pelaajalle
     cool_field('Game rules',f"\nSave all the patients from different cities and return them to the home hospital."
           f"\nFor every round you gain more range to save more patients."
           f"\n\nThe helicopter has a maximum capacity of 3 patients."
           f"\n\nThe game also contains quiz games, where you have a chance to gain more range."
           f"\n\nThe game ends when you have saved all the patients or you ran out of range.")
-    starting = input(f'Press Enter to start on your journey, {screen_name}... ')
+
+    # Meidän easter egg hihi
+    if screen_name.upper() == 'TINJA':
+        embark = 'embark'
+        starting = input(f'Press Enter to {colored(embark, "yellow")} on your journey, {screen_name}... ')
+    else:
+        starting = input(f'Press Enter to start on your journey, {screen_name}... ')
 
     quiz_randomizer() # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
