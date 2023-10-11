@@ -527,15 +527,16 @@ def patient_icao(patient_list, patient_list_mun):
     # tulostaa jäljellä olevien potilaiden listan
     # kehottaa palaamaan kotiin, jos kaikki potilaat on jo haettu
 
-    if len(patient_list_mun) > 1:
-        markdown(f"Patients are located at")
-        for key in patient_list_mun.keys():
-            markdown(f'{patient_list_mun[key]} ({key})')
+    if len(patient_list) > 0:
+        if len(patient_list_mun) > 1:
+            markdown(f"Patients are located at")
 
-    elif len(patient_list_mun) == 1:
-        markdown(f"Patient is located at")
-        for key in patient_list_mun.keys():
-            markdown(f'{patient_list_mun[key]} ({key})')
+        elif len(patient_list_mun) == 1:
+            markdown(f"Patient is located at")
+
+        separate = ' • '
+        result = separate.join(str(value) + " (" + str(key) + ")" for key, value in patient_list_mun.items())
+        markdown(f'{result}')
 
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
         markdown(f"No patients to be saved this time - return to home to get new patient list")
