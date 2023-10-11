@@ -9,18 +9,13 @@ from termcolor import colored
 def lore():
     backlore = Group(
         Panel("Medihelipeli: A Race Against Time", style="on blue"),
-        Panel("Time is running out. Equipped with an advanced emergency rescue helicopter No. 330 Squadron RNoAF,\n"
-        "you are set on a dangerous patient-saving journey in the beautiful landscape of Norway.\n"
-        "Your helicopter's fuel is limited, and each rescue mission consumes a significant portion of it.\n"
-        "The goal is to save all twelve patients before you run out of fuel.\n"
-        "Each rescue attempt must be carefully calculated to maximize fuel efficiency while minimizing the time taken to reach and rescue the patients.\n"
-        "There are three kinds of danger levels (1-3). The level depends on the severity of the patient's injury.\n"
-        "Depending on the severity of the injury, the level changes.\n"
-        "If you manage to save all twelve patients within the fuel "
-        "constraints, you're hailed as a hero, and the skies of Norway echo "
-        "with the stories of your courage.\n"
-        "However, if your fuel runs out before completing the rescue missions, "
-        "your journey ends, and the fate of the remaining patients remains uncertain.", style="on red"),
+        Panel("You are a pilot for the No. 330 Squadron RNoAF emergency rescue helicopter. "
+          f"The game is based on the beautiful landscape of Norway. \n\nYou are on a mission to save 12 patients with different kinds of injuries. "
+          f"\n\nYour helicopter has a limited fuel capacity, so you have to be very strategic about what moves you make. "
+          f"For each rescued patient you gain more fuel to save more patients. "
+          f"\n\nIf you manage to save every patient before the fuel runs out, "
+          f"\nyou`re hailed as a hero of the skies of Norway and different generations are going to tell stories about your courage. "
+          f"\n\nBut if your fuel runs out before you manage to complete all of the rescue missions, your journey ends and the rest of the patients face uncertain fate.", style="on red"),
     )
 
     print(Panel(backlore))
@@ -61,7 +56,6 @@ def colored_text(text, color):
 # input type shit
 
 def input_field(title, text):
-    print('\n')
     input_field = Text(text)
 
     # Create a Panel with the input field and style it
@@ -72,7 +66,6 @@ def input_field(title, text):
 
     # Get user input
     user_input = input("Your input: ")
-    print('*' * 75)
     return user_input
 
 def cool_field(title, text):
@@ -95,3 +88,61 @@ def markdown(text):
 
     # Print the colored and underlined text
     print(formatted_text)
+
+# ////
+# Norway map
+
+text1 = """         
+                                                       _____________~-_
+                                                     _/                >
+                                                 __--             ___-~
+                                                /            _,-_ `---_,
+                                          _--\ /            /    `--\ /
+                                         /    *            |        ,'
+                             Harstad/'\ \  Tromså        (        (
+                                   /'   \/      _/\___    /        /
+                                 /'_,-      ___/ \_   `\/         |
+                               /'/'  _/  . /       ~~\             \_
+                              /`'   /    _/           |              \\
+                                   /.  _/              \              |
+                                 _/                     )            (
+                               _/    /                  \             |
+                              /     /                   /             |
+                            _/     /                    \             \\
+                           /      |                 ,----+-.           (
+             Sandnessjån  /      /                .'        )           \_
+                        _/      |                 |         \            (
+                       /       /                  |        /~
+               Namsos_/       |                   >       / FINLAND
+                  __/         _)                 /       /
+              ___/    .    /~~  SWEDEN          /      /
+Kristiansund__/  Trondheim/                    _/      /
+    Molde,/              |                    /      .'
+ Ålesund/                |                  /       |
+       |      NORWAY     |                 /        |
+       \____   Lillehammer|                /         |
+  Fårde,----'       Ål   /               (          |               ___---
+       |         Elverum\                \        __,--~~
+       |.       Hånefoss \                 \      _   ~-_  _*~        
+       |            Oslo /                  \    <_>     ~---~~
+       |     Drammen    |                    >                      ______
+       `\      Skien|\  |Tånsberg          /                _-*~~~~
+Haugesund`.        /   \|                 /~              <><
+    Stavanger   ,Arendal\              _/     __          <__>\   ESTONIA
+           `\___/Kristiansand           /      < /             \\"""
+
+def norway_map():
+    console = Console()
+
+    lines1 = text1.split('\n')
+
+    # Tehdään taulu
+    table = Table(expand=True)
+
+    # Säädetään taulukon leveys
+    table.add_column("Map of Norway", width=120)
+
+    # lisätään sisältö
+    table.add_row('\n'.join(lines1))
+
+    console.print(table)
