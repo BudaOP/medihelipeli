@@ -1,3 +1,4 @@
+import time
 from rich import print
 from rich.console import Group, Console
 from rich.panel import Panel
@@ -77,14 +78,13 @@ def cool_field(title, text):
     # Print the input panel
     print(input_panel)
 
-def markdown(text):
-    color = "\033[92m" #color can be changed - ?m
+def markdown(text, color):
     bold = "\033[1m"
     reset = "\033[0m"
     markdown_text = f"""• {text}"""
 
     # Combine the escape codes with the text
-    formatted_text = f"{color}{bold}{markdown_text}{reset}"
+    formatted_text = f"{color}{markdown_text}{reset}"
 
     # Print the colored and underlined text
     print(formatted_text)
@@ -146,3 +146,59 @@ def norway_map():
     table.add_row('\n'.join(lines1))
 
     console.print(table)
+
+
+# ///////////////////////////////////////
+blue = "\033[95m"
+red = "\033[91m"
+green = "\033[92m"
+yellow = "\033[33m"
+pink = "\033[36m"
+warning = '\033[93m'
+bold = '\033[1m'
+underline = '\033[4m'
+reset = "\033[0m"
+
+patient_name = 'WOMAN'
+hero_name = 'HERO'
+warning_text = 'Warning!'
+
+def finalboss_dialogue(text, sex):
+    if sex == patient_name:
+        dialogue_text = f"{red}[{sex}]:{reset} {text}"
+    elif sex == hero_name:
+        dialogue_text = f"{green}[{sex}]:{reset} {text}"
+    elif sex == warning_text:
+        dialogue_text = f"\n{bold}{warning}{underline}{sex}{reset}\n{text}"
+    for char in dialogue_text:
+        print(char, end='', flush=True)
+        time.sleep(0.04)  # Adjust the typing speed
+    time.sleep(0.5)
+
+    # Define the text
+situation = 'Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack...\n\n'
+time.sleep(0.5)
+dialogue1 = f"(panicking) - Help, I can't breathe!\n\n"
+dialogue2 = "(rushing over) - What happened?\n\n"
+dialogue3 = "There is an inhaler in my bag! Help me please!\n\n"
+dialogue4 = "(searching the inhaler) - Fuck, I can't find it.\n\n"
+dialogue5 = "Hurry! (choking starts)\n\n"
+dialogue6 = "(retrieving the inhaler) - Got it. Take a deep breath. I'll help you use it.\n\n"
+dialogue7 = "(breathing heavily) - Thank you.\n\n"
+dialogue8 = "You're doing great. Fortunately everything went good.\n\n"
+
+    # Apply the typewriter effect without colors
+def dialogue_print_before():
+    finalboss_dialogue(situation, warning_text)
+    finalboss_dialogue(dialogue1, patient_name)
+    finalboss_dialogue(dialogue2, hero_name)
+    finalboss_dialogue(dialogue3, patient_name)
+
+def dialogue_print_after():
+    # print(f"[{patient_name}]: (panicking) - Help, I can't breathe!\n\n[{hero_name}]: (rushing over) - What happened?\n\n"
+    #       f"[{patient_name}]: There is an inhaler in my bag! Help me please!\n\n")
+    finalboss_dialogue(dialogue4, hero_name)
+    finalboss_dialogue(dialogue5, patient_name)
+    finalboss_dialogue(dialogue6, hero_name)
+    finalboss_dialogue(dialogue7, patient_name)
+    finalboss_dialogue(dialogue8, hero_name)
