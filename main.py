@@ -39,7 +39,7 @@ def start():
         screen_name = "Dr. McLovin"
 
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
-                 f"location = 'ENTR', patient_goal = 11, patient_qty = 0, "
+                 f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
                  f"range_km = 4000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
     sql_start_quiz = f"UPDATE airport SET quiz = 0"
