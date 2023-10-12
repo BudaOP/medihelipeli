@@ -5,8 +5,21 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from termcolor import colored
+import keyboard
+import mysql.connector
+
+# Tietokantayhteys
+yhteys = mysql.connector.connect(
+    host='127.0.0.1',
+    port=3306,
+    database='flight_game',
+    user='root',
+    password='KierukkaKupariNöö7!',
+    autocommit=True
+)
 
 
+# Backlore printtaus
 def lore():
     backlore = Group(
         Panel("Medihelipeli: A Race Against Time", style="on blue"),
@@ -26,72 +39,47 @@ def lore():
 
 
 
-# ////////////////////////////////////////
+# Formatted_notitle -tyyli
 def formatted_notitle(text):
-    # Create a Console object
     console = Console()
-
     formatted_text = colored(text, "blue")
-
-    # Create a table
     table = Table(show_header=False, width=75)
-
-    # Add the text to the table
     table.add_row(formatted_text)
-
-    # Print the table with a cool font
     console.print(table)
 
+# Colored_text -tyyli
 def colored_text(text, color):
-    text_color = color #color can be changed - ?m
+    text_color = color
     bold = "\033[1m"
     reset = "\033[0m"
-
-    # Combine the escape codes with the text
     formatted_text = f"{text_color}{bold}{text}{reset}"
-
-    # Print the colored and underlined text
     print(formatted_text)
 
-# /////////////////////////////////////////////////////////
-# input type shit
-
+# Input field Icao-koodin syöttämiseen
 def input_field(title, text):
     input_field = Text(text)
-
-    # Create a Panel with the input field and style it
     input_panel = Panel(input_field, title=title, style="on blue", padding=(0, 2), width=75)
-
-    # Print the input panel
     print(input_panel)
 
-    # Get user input
+    # Käyttäjän syöte
     user_input = input("Your input: ")
     return user_input
 
+# Tyylien määrittely Game rules -paneliin
 def cool_field(title, text):
     input_field = Text(text, style="blue")
-
-    # Create a Panel with the input field and style it
     input_panel = Panel(input_field, title=title, style="on blue", padding=(0, 2))
-
-    # Print the input panel
     print(input_panel)
 
+# Tyylien määrittely Markdown -tyyliin
 def markdown(text, color):
     bold = "\033[1m"
     reset = "\033[0m"
     markdown_text = f"""• {text}"""
-
-    # Combine the escape codes with the text
     formatted_text = f"{color}{markdown_text}{reset}"
-
-    # Print the colored and underlined text
     print(formatted_text)
 
-# ////
 # Norway map
-
 text1 = """         
                                                        _____________~-_
                                                      _/                >
@@ -131,24 +119,21 @@ Haugesund`.        /   \|                 /~              <><
     Stavanger   ,Arendal\              _/     __          <__>\   ESTONIA
            `\___/Kristiansand           /      < /             \\"""
 
+# Tulostaa korjan
 def norway_map():
     console = Console()
 
     lines1 = text1.split('\n')
-
     # Tehdään taulu
     table = Table(expand=True)
-
     # Säädetään taulukon leveys
     table.add_column("Map of Norway", width=120)
-
-    # lisätään sisältö
+    # Lisätään sisältö
     table.add_row('\n'.join(lines1))
-
     console.print(table)
 
 
-# ///////////////////////////////////////
+# Värit
 blue = "\033[95m"
 red = "\033[91m"
 green = "\033[92m"
@@ -159,46 +144,122 @@ bold = '\033[1m'
 underline = '\033[4m'
 reset = "\033[0m"
 
-patient_name = 'WOMAN'
-hero_name = 'HERO'
-warning_text = 'Warning!'
+# Hakee ja palauttaa screen namen tietokannasta
+def screen_name():
+    sql = "SELECT screen_name FROM player WHERE id = 1"
+    cursor = yhteys.cursor()
+    cursor.execute(sql)
+    hero_name = cursor.fetchone()[0].upper()
+    return hero_name
 
-def finalboss_dialogue(text, sex):
+
+
+# Muuttujat dialogeihin
+patient_name = 'WOMAN'
+hero_name = 'PLAYER'
+warning_text = 'Warning!'
+dispatcher = 'DISPATCHER'
+neutral = '**'
+
+# Dialogi pohja
+def dialogue_template(text, sex):
     if sex == patient_name:
         dialogue_text = f"{red}[{sex}]:{reset} {text}"
     elif sex == hero_name:
-        dialogue_text = f"{green}[{sex}]:{reset} {text}"
+        dialogue_text = f"{green}[{screen_name()}]:{reset} {text}"
     elif sex == warning_text:
         dialogue_text = f"\n{bold}{warning}{underline}{sex}{reset}\n{text}"
+    elif sex == dispatcher:
+        dialogue_text = f"{red}[{sex}]:{reset} {text}"
+    elif sex == neutral:
+        dialogue_text = f"\n{warning}{text}{reset}"
     for char in dialogue_text:
         print(char, end='', flush=True)
         time.sleep(0.04)  # Adjust the typing speed
     time.sleep(0.5)
+    return
 
-    # Define the text
-situation = 'Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack...\n\n'
+# Puheenvuoro-muuttujat dialogeihin
 time.sleep(0.5)
-dialogue1 = f"(panicking) - Help, I can't breathe!\n\n"
-dialogue2 = "(rushing over) - What happened?\n\n"
-dialogue3 = "There is an inhaler in my bag! Help me please!\n\n"
-dialogue4 = "(searching the inhaler) - Fuck, I can't find it.\n\n"
-dialogue5 = "Hurry! (choking starts)\n\n"
-dialogue6 = "(retrieving the inhaler) - Got it. Take a deep breath. I'll help you use it.\n\n"
-dialogue7 = "(breathing heavily) - Thank you.\n\n"
-dialogue8 = "You're doing great. Fortunately everything went good.\n\n"
 
-    # Apply the typewriter effect without colors
-def dialogue_print_before():
-    finalboss_dialogue(situation, warning_text)
-    finalboss_dialogue(dialogue1, patient_name)
-    finalboss_dialogue(dialogue2, hero_name)
-    finalboss_dialogue(dialogue3, patient_name)
+start1 = "(phone ringing...)\n\n"
+start3 = "Yes, hello, what's up?\n\n"
+start4 = ("The worst winterstorm of the century is approaching rapidly.\nWe need all the talented pilots like you in line. \n\n")
+start5 = "Of course. I'm always ready for a rescue mission.\n\n"
 
-def dialogue_print_after():
-    # print(f"[{patient_name}]: (panicking) - Help, I can't breathe!\n\n[{hero_name}]: (rushing over) - What happened?\n\n"
-    #       f"[{patient_name}]: There is an inhaler in my bag! Help me please!\n\n")
-    finalboss_dialogue(dialogue4, hero_name)
-    finalboss_dialogue(dialogue5, patient_name)
-    finalboss_dialogue(dialogue6, hero_name)
-    finalboss_dialogue(dialogue7, patient_name)
-    finalboss_dialogue(dialogue8, hero_name)
+acute1 = "(phone ringing...)\n\n"
+acute3 = "Hi, yes, it's demanding but manageable. \nIs there something acute happening or why are you calling?\n\n"
+acute4 = "There has been an avalanche with victims - can you please help with these patients immediately?\n\n"
+acute5 = "Of course. I will pick up the victims right away and bring them to the home base.\n\n"
+
+
+situation = 'Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack...\n\n'
+
+final1 = "(panicking) - Help, I can't breathe!\n\n"
+final2 = "(rushing over) - What happened?\n\n"
+final3 = "There is an inhaler in my bag! Help me please!\n\n"
+final4 = "(searching the inhaler) - Fuck, I can't find it.\n\n"
+final5 = "Hurry! (choking starts)\n\n"
+final6 = "(retrieving the inhaler) - Got it. Take a deep breath. I'll help you use it.\n\n"
+final7 = "(breathing heavily) - Thank you.\n\n"
+final8 = "You're doing great. Fortunately everything went good.\n\n"
+
+# Alun dialogi
+def dialogue_start():
+    for i in range(150):
+        keyboard.block_key(i)
+    if screen_name() == 'DR. MCLOVIN':
+        start2 = f"Hello Dr. McLovin, can you hear? The signal has been unstable today.\n\n"
+        start6 = f"You're a gift, Dr. McLovin! I'll send you the instructions shortly.\n\n"
+    else:
+        start2 = f"Hello {screen_name().lower().capitalize()}, can you hear? The signal has been unstable today.\n\n"
+        start6 = f"You're a gift, {screen_name().lower().capitalize()}! I'll send you the instructions shortly.\n\n"
+    dialogue_template(start1, neutral)
+    dialogue_template(start2, dispatcher)
+    dialogue_template(start3, hero_name)
+    dialogue_template(start4, dispatcher)
+    dialogue_template(start5, hero_name)
+    dialogue_template(start6, dispatcher)
+    for i in range(150):
+        keyboard.unblock_key(i)
+        
+# Avalanche dialogi
+def dialogue_avalanche():
+    for i in range(150):
+        keyboard.block_key(i)
+    if screen_name() == 'DR. MCLOVIN':
+        acute2 = f"Hello, Dr. McLovin - hope you are still safe despite the harsh conditions.\n\n"
+    else:
+        acute2 = f"Hello, {screen_name().lower().capitalize()} - hope you are still safe despite the harsh conditions.\n\n"
+    dialogue_template(acute1, neutral)
+    dialogue_template(acute2, dispatcher)
+    dialogue_template(acute3, hero_name)
+    dialogue_template(acute4, dispatcher)
+    dialogue_template(acute5, hero_name)
+    for i in range(150):
+        keyboard.unblock_key(i)
+
+
+# Lopun 1. dialogi
+def dialogue_final_before():
+    for i in range(150):
+        keyboard.block_key(i)
+    dialogue_template(situation, warning_text)
+    dialogue_template(final1, patient_name)
+    dialogue_template(final2, hero_name)
+    dialogue_template(final3, patient_name)
+    for i in range(150):
+        keyboard.unblock_key(i)
+
+# Lopun 2. dialogi
+def dialogue_final_after():
+    for i in range(150):
+        keyboard.block_key(i)
+    dialogue_template(final4, hero_name)
+    dialogue_template(final5, patient_name)
+    dialogue_template(final6, hero_name)
+    dialogue_template(final7, patient_name)
+    dialogue_template(final8, hero_name)
+    for i in range(150):
+        keyboard.unblock_key(i)
+
