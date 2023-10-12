@@ -1,0 +1,104 @@
+delete from airport where iso_country != "NO";
+
+delete from airport where type != "heliport";
+
+DELETE FROM airport WHERE name NOT LIKE "%Hospital%" AND name NOT LIKE "%Medical Center%";
+
+create table player(
+id int not null auto_increment,
+name VARCHAR(40),
+location VARCHAR(40),
+fuel int,
+patient_goal int,
+patient_qty int,
+PRIMARY key (id),
+foreign key (location) REFERENCES airport (ident)
+);
+
+create table patient(
+id int not null auto_increment,
+location VARCHAR(40),
+player_id int,
+rescued int,
+patient_type int,
+primary key (id),
+foreign key (location) REFERENCES airport (ident),
+foreign key (player_id) REFERENCES player (id)
+);
+
+create table patient_types(
+id int not null auto_increment,
+type VARCHAR(40),
+LEVEL int,
+primary key (id)
+);
+
+alter table patient add foreign key (patient_type) REFERENCES patient_types(id);
+
+
+#tehdöön datan lisääminen
+insert into player (fuel, patient_goal, patient_qty)
+values (160, 0, 0);
+
+insert into patient (rescued)
+values (0);
+
+insert into patient_types (type, level)
+values('auto-onnettomuus', 3), ('kiipeilyonnettomuus', 3), 
+('lumivyöryonnettomuus', 3), ('sydänkohtaus', 3), ('umpisuolentulehdus', 2), 
+('murtuma', 2), ('synnytys', 2), ('nenäverenvuoto', 1), ('nyrjähdys', 1), 
+('sormimurtuma', 1), ('lihasrepeämä', 1), ('aivotärähdys', 1);
+
+INSERT INTO patient (rescued)
+VALUES (0), (0), (0), (0), (0), (0), (0), (0), (0), (0), (0);
+
+update patient set patient_type = patient.id;
+
+alter table player change name screen_name varchar(40);
+
+alter table player change fuel range_km varchar(40);
+
+alter table airport change elevation_ft quiz int;
+
+create table quiz(
+id int not null auto_increment,
+question VARCHAR(200),
+option1 VARCHAR(200),
+option2 VARCHAR(200),
+option3 VARCHAR(200),
+used int,
+primary key (id)
+);
+
+insert into quiz (id, question, option1, option2, option3, used)
+values (1, 'joku kysymys', 'option1', 'option2', 'option3', 0);
+
+ALTER TABLE quiz ADD COLUMN correct varchar(40);
+
+INSERT INTO quiz (id) VALUES (2);
+INSERT INTO quiz (id) VALUES (3);
+INSERT INTO quiz (id) VALUES (4);
+INSERT INTO quiz (id) VALUES (5);
+INSERT INTO quiz (id) VALUES (6);
+INSERT INTO quiz (id) VALUES (7);
+INSERT INTO quiz (id) VALUES (8);
+
+UPDATE quiz SET question = "What is the capital of Norway?" WHERE id = 1;
+UPDATE quiz SET question = "What is the capital of Norway?" WHERE id = 1;
+
+UPDATE quiz SET question = "What is the capital of Norway?" WHERE id = 1; 
+UPDATE quiz SET question = "What is the background colour of the Norwegian flag?" WHERE id = 2; 
+UPDATE quiz SET question = "What is the highest mountain in Norway?" WHERE id = 3; 
+UPDATE quiz SET question = "Which of these programming languages was founded in Norway?" WHERE id = 4; 
+UPDATE quiz SET question = "What is the surface area of Norway?" WHERE id = 5; 
+UPDATE quiz SET question = "What is the national sport of Norway?" WHERE id = 6; 
+UPDATE quiz SET question = "What is the population of Norway?" WHERE id = 7; 
+UPDATE quiz SET question = "What is the largest industry in Norway?" WHERE id = 8;
+UPDATE quiz SET option1 = "Bergen", option2 = "Stavanger", option3 = "Oslo", correct = "c" WHERE id = 1;
+UPDATE quiz SET option1 = "Blue", option2 = "Red", option3 = "Orange", correct = "b" WHERE id = 2;
+UPDATE quiz SET option1 = "Galdhopiggen", option2 = "Uranostind", option3 = "Halti", correct = "a" WHERE id = 3;
+UPDATE quiz SET option1 = "Java", option2 = "Python", option3 = "CSS", correct = "c" WHERE id = 4;
+UPDATE quiz SET option1 = "385 207 km²", option2 = "558 973 km²", option3 = "103 463 km²", correct = "a" WHERE id = 5;
+UPDATE quiz SET option1 = "Snowboarding", option2 = "Ice hockey", option3 = "Skiing", correct = "c" WHERE id = 6;
+UPDATE quiz SET option1 = "5 485 359 million", option2 = "4 003 755 million", option3 = "2 567 953 million", correct = "a" WHERE id = 7;
+UPDATE quiz SET option1 = "Fishing", option2 = "Tourism", option3 = "Oil", correct = "c" WHERE id = 8;
