@@ -5,14 +5,14 @@ from geopy import distance
 from tabulate import tabulate
 from termcolor import colored
 from intro import intro
-from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown, norway_map
+from formatting import lore, formatted_notitle, colored_text, input_field, cool_field, markdown, norway_map, dialogue_print_before, dialogue_print_after
 
 yhteys = mysql.connector.connect(
     host='127.0.0.1',
     port=3306,
     database='flight_game',
     user='root',
-    password='Astr0n4utt1?',
+    password='KierukkaKupariNöö7!',
     autocommit=True
 )
 
@@ -21,12 +21,14 @@ blue = "\033[95m"
 red = "\033[91m"
 green = "\033[92m"
 yellow = "\033[33m"
-pink = "\033[36m"
+cyan = "\033[36m"
+underline = '\033[4m'
+warning = '\033[93m'
+bold = '\033[1m'
 reset = "\033[0m"
 
 
 # FUNKTIOT
-
 
 def start():
     screen_name = input("\nWhat's your name? "
@@ -37,7 +39,7 @@ def start():
         screen_name = "Dr. McLovin"
 
     sql_start = (f"UPDATE player SET screen_name = '{screen_name}', "
-                 f"location = 'ENTR', patient_goal = 0, patient_qty = 0, "
+                 f"location = 'ENTR', patient_goal = 11, patient_qty = 0, "
                  f"range_km = 4000 WHERE id = 1")
     sql_start_patient = f"UPDATE patient SET rescued = 0"
     sql_start_quiz = f"UPDATE airport SET quiz = 0"
@@ -46,7 +48,7 @@ def start():
     try:
         cursor.execute(sql_start)
     except mysql.connector.ProgrammingError as err:
-        print(f"Invalid name, please try again")
+        print(f"{red}Invalid name, please try again{reset}\n")
         start()
     cursor.execute(sql_start_patient)
     cursor.execute(sql_start_quiz)
@@ -96,7 +98,7 @@ def game_start():
             valid_input = True
 
         else:
-            print(f"\nInvalid input, please try again:")
+            print(f"\n{red}Invalid input, please try again{reset}\n")
             continue
 
     return game_input
@@ -115,7 +117,7 @@ def backlore():
         elif backlore == "N":
             valid_input = True
         else:
-            print(f"\nInvalid input, please try again:")
+            print(f"\n{red}Invalid input, please try again{reset}")
             continue
     return
 
@@ -217,14 +219,14 @@ def home_hospital():
     comparison_home = int(distance.distance({player_coord()[0]}, {res_home_coord[0]}).km)
 
     if comparison_home == 0:
-        colored_text(f"\nYou are at the home hospital: Trondheim (ENTR)", green)
+        colored_text(f"{underline}\nYou are at the home hospital: Trondheim (ENTR){reset}", green,)
 
     # elif helicopter() == 0:
     #    print(f"\nYour distance to the home hospital (ENTR) is {comparison_home} kilometers, \n"
     #          f"but you can't go home without any rescued patients")
 
     else:
-        colored_text(f"\nYour distance to the home hospital (Trondheim, ENTR) is {comparison_home} kilometers", green)
+        print(f"\n{underline}Your distance to the home hospital {green}(Trondheim, ENTR){reset}{underline} is {green}{comparison_home}{reset}{underline} kilometers{reset}")
 
     return
 
@@ -242,7 +244,7 @@ def player_range():
 
 # pelaaja valitsee mihin haluaa siirtyä seuraavaksi
 def destination():
-    markdown(f"Your range is {player_range()} kilometers ")
+    markdown(f"Your range is {green}{player_range()}{reset} kilometers ", reset)
     valid_input = False
 
     # Valinta-loop pyörii niin kauan, että pelaaja syöttää oikean ICAO-koodin
@@ -266,12 +268,12 @@ def destination():
                 # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
 
                 if player_location()[0] == 'ENTR':
-                    markdown(f"{goal()} out of 12 patients rescued to the hospital")
+                    markdown(f"{bold}{goal()}{reset} out of {bold}12{reset} patients rescued to the hospital", reset)
 
-                markdown(f"Your range is {player_range()} kilometers ")
+                markdown(f"Your range is {green}{player_range()}{reset} kilometers ", reset)
 
             elif cursor.rowcount == 0:
-                print(f"Location not found, try again")
+                print(f"{warning}Location not found, try again{reset}\n")
                 valid_input = False
 
             elif cursor.rowcount >= 1:
@@ -279,7 +281,7 @@ def destination():
 
         # Estää ohjelman kaatumisen virheellisen syötteen vuoksi
         except mysql.connector.errors.ProgrammingError:
-            print(f"Location not found, try again")
+            print(f"{warning}Location not found, try again{reset}\n")
             valid_input = False
 
     # Lasketaan, riittääkö range halutulle lentokentälle
@@ -289,7 +291,7 @@ def destination():
         if destination_distance <= int(player_range()):
 
             if new_location == player_location()[0]:
-                print(f'\nYou are already at {new_location}, please try again')
+                print(f'\n{warning}You are already at {new_location}, please try again{reset}\n')
                 destination()
 
             # elif new_location == 'ENTR' and helicopter() == 0:
@@ -303,7 +305,7 @@ def destination():
                 cursor.execute(sql_update_location)
                 cursor.execute(sql_select_location)
                 res_select_location = cursor.fetchone()
-                print(f"\nYou have arrived at {res_select_location[0]} ({res_select_location[1]}), welcome!")
+                print(f"\n{green}You have arrived at {res_select_location[0]} ({res_select_location[1]}), welcome!{reset}")
 
                 if goal() < 9:
                     old_range = int(player_range())
@@ -321,7 +323,7 @@ def destination():
 
 
         elif destination_distance > int(player_range()):
-            print(f"You don't have enough range to travel to this destination ")
+            print(f"{warning}You don't have enough range to travel to this destination ")
             destination()
 
     # if cursor.rowcount == 0 :
@@ -334,9 +336,9 @@ def destination():
 def quiz():
     randomizing = True
 
-    print("\nQUIZ GAME\nThere happens to be quiz game on your location! "
-          "\nThe questions are Norway related\n\nThe rules are quite simple "
-          "\nRight answer you gain 300km amount of range \nWrong answer you lose 150km amount of range")
+    print(f"\n{cyan}{bold}{underline}QUIZ GAME{reset}\nThere happens to be quiz game on your location! "
+          f"\nThe questions are Norway related\n\nThe rules are quite simple:"
+          f"\nRight answer you gain {green}300km{reset} amount of range \nWrong answer you lose {green}150km{reset} amount of range                 ")
 
     # etsii kysymyksen, jota ei oel vielä käytetty
     while randomizing:
@@ -378,19 +380,19 @@ def quiz():
             cursor.execute(sql_quiz_used)
             cursor.execute(sql_quiz_update)
 
-            print("\nWelcome to play a quiz game!")
+            print(f"\n{green}{underline}Welcome to play a quiz game!\n{reset}")
 
             print(f"{question}"
-                  f"\na) {a} or b) {b} or c) {c}")
+                  f"\n{bold}{cyan}a){reset} {a} or {bold}{cyan}b){reset} {b} or {bold}{cyan}c){reset} {c}")
 
             # pelaaja vastaa oikein
             while not answered:
 
                 played = True
-                answer = input("Enter your answer: ").lower()
+                answer = input("\nEnter your answer: ").lower()
 
                 if answer not in ("a", "b", "c"):
-                    print(f"Invalid input, please try again")
+                    print(f"{red}Invalid input, please try again{reset}\n")
 
                     answered = False
 
@@ -398,8 +400,8 @@ def quiz():
 
                     sql_quiz_fuel = f"UPDATE player SET range_km = range_km + 300"
                     cursor.execute(sql_quiz_fuel)
-                    print(f"\nYour answer - {correct_answer} - is right!"
-                          f"\nYou gained 300km amount of range and your new range is {player_range()} kilometers\n")
+                    print(f"\nYour answer - {correct_answer} - {green}is right!{reset}"
+                          f"\nYou gained {green}300km{reset} amount of range and your new range is {green}{player_range()}{reset} kilometers\n")
 
                     answered = True
 
@@ -411,15 +413,15 @@ def quiz():
 
                     sql_quiz_fuel = f"UPDATE player SET range_km = range_km - 150"
                     cursor.execute(sql_quiz_fuel)
-                    print(f"\nYour answer was wrong..."
-                          f"\nThe right answer was {correct_answer}")
+                    print(f"\n{red}Your answer was wrong{reset}"
+                          f"\nThe right answer was {green}{correct_answer}{reset}")
 
                     if int(player_range()) > 0:
-                        print(f"\nYou just lost 150km amount of range and "
-                              f"your new range is {player_range()} kilometers\n")
+                        print(f"\nYou just lost {green}150km{reset} amount of range and "
+                              f"your new range is {green}{player_range()}{reset} kilometers\n")
 
                     elif int(player_range()) <= 0:
-                        print(f"\nYou just lost 150km amount of range and "
+                        print(f"\nYou just lost {green}150km{reset} amount of range and "
                               f"ran out of range\n")
 
                     answered = True
@@ -429,13 +431,13 @@ def quiz():
 
         elif quiz_input == "N":
 
-            print('Okay, your loss... \nContinue your journey')
+            print(f"{warning}Your choice, but you'll be missed. Please, continue your journey.\n{reset}")
             break
 
         # syötetty vastaus on virheellinen ja vastaus kysytään uudelleen
 
         else:
-            print("Wrong input, try again!")
+            print(f"{red}Wrong input, try again!{reset}")
             continue
 
     return
@@ -527,20 +529,19 @@ def patient_icao(patient_list, patient_list_mun):
     # kehottaa palaamaan kotiin, jos kaikki potilaat on jo haettu
 
     separate = ' • '
-    result = separate.join(str(value) + " (" + str(key) + ")" for key, value in patient_list_mun.items())
+    result = separate.join(str(value) + f"{green} (" + str(key) + f"){reset}" for key, value in patient_list_mun.items())
 
     if len(patient_list) > 0:
         if len(patient_list_mun) > 1:
-            markdown(f"Patients are located at \n  {result}")
+            # markdown(f"Patients are located at \n  {result}\n", reset)
+            print(f"Patients are located at \n  {result}\n")
 
         elif len(patient_list_mun) == 1:
-            markdown(f"Patient is located at \n  {result}")
-
-
-        # markdown(f'{result}')
+            # markdown(f"Patient is located at \n  {result}\n", reset)
+            print(f"Patient is located at \n  {result}\n")
 
     elif len(patient_list) == 0 and player_location()[0] != "ENTR":
-        markdown(f"No patients to be saved this time - return to home to get new patient list")
+        markdown(f"No patients to be saved this time - return to home to get new patient list", warning)
 
     return
 
@@ -577,25 +578,25 @@ def rescue_patient(patient_list):
             if cursor.rowcount != 0:
                 if player_location()[0] == acute_randomizer()[0]:
                     if helicopter() == 0:
-                        print(f"You saved 3 patients from avalanche")
+                        print(f"\nYou saved 3 patients from avalanche")
                     elif helicopter() == 1:
-                        print(f"You saved 2 patients from avalanche")
+                        print(f"\nYou saved 2 patients from avalanche")
                     elif helicopter() == 2:
-                        print(f"You saved 1 patient from avalanche")
+                        print(f"\nYou saved 1 patient from avalanche")
 
-                    print(f"Due to the acute avalanche situation in the mountains, \n"
+                    print(f"\nDue to the acute avalanche situation in the mountains, \n"
                           f"you flew directly back to the home hospital.\n"
-                          f"The avalanche victims are now safe, thanks to you, hero!\n")
+                          f"{green}The avalanche victims are now safe, thanks to you, hero!{reset}\n")
                     update_player_home = f"UPDATE player SET location = 'ENTR' where id = 1"
                     cursor.execute(update_player_home)
                 elif player_location()[0] != acute_randomizer()[0]:
-                    print(f"You have picked up one of your patients.")
+                    print(f"{green}You have picked up one of your patients.{reset}\n")
 
 
         else:
 
             if player_location()[0] != 'ENTR':
-                print(f"There is no patient to be saved here.")
+                print(f"{green}There is no patient to be saved here.{reset}\n")
 
     # Tarkistetaan onko pelaajan sijainnissa quiz game
 
@@ -626,7 +627,7 @@ def update_goal():
         sql_goal = "UPDATE player SET range_km = range_km + 500, patient_goal = patient_goal + patient_qty, patient_qty = 0 WHERE location = 'ENTR'"
         cursor = yhteys.cursor()
         cursor.execute(sql_goal)
-        print(f"You gained 500km of range because you rescued the patients!")
+        print(f"You gained {green}500km{reset} of range because you rescued the patients!\n")
         pause()
 
     elif helicopter() < 3:
@@ -655,24 +656,28 @@ def patient_aku():
 
 def final_boss():
     answered = False
-    print('Oh no! You are almost nearing the end of the mission but one of your patients is having an asthma attack. '
-          '\nYou are the only one that can help him.')
-    print('If someone is having an asthma attack, what is the most important thing to do to help them?')
+    dialogue_print_before()
+
+
+    print(f'{underline}The patient is having an asthma attack, what is your next move?{reset}')
 
     while not answered:
-        answer = input('a) Give them something to eat b) Give them a hug c) Help them to use their inhaler'
-                       '\nWrite your answer here: ').upper()
+        answer = input(f'{cyan}a){reset} Give her something to eat {cyan}b){reset} Give her a hug {cyan}c){reset} Help her to use the inhaler'
+                       '\n\nChoose your next move: ').upper()
 
         if answer not in ('A', 'B', 'C'):
             answered = False
-            print(f"Invalid input, please try again... ")
+            print(f"{red}Invalid input, please try again{reset}\n")
             continue
 
         elif answer == "C":
+            print('')
+            dialogue_print_after()
             answered = True
             game_end = "win"
 
         elif answer == 'A' or answer == 'B':
+            print(f"\nBecause of your next move unfornutaly your patient didn't survive.")
             answered = True
             game_end = "lose"
 
@@ -686,7 +691,7 @@ def final_boss():
 new_game = game_start()
 
 if new_game == "N":
-    colored_text(f"Oh no! You missed on a life-changing mission! ", red)
+    colored_text(f"Oh no! You missed on a life-changing mission! ", warning)
 
 if new_game == "Y":
     colored_text(f"Congratulations! You're about to start a rescue mission.", green)
@@ -705,9 +710,9 @@ if new_game == "Y":
     # Meidän easter egg hihi
     if screen_name.upper() == 'TINJA':
         embark = 'embark'
-        starting = input(f'Press Enter to {pink}{embark}{reset} on your journey, {screen_name}... ')
+        starting = input(f'Press Enter to {cyan}{embark}{reset} on your journey, {screen_name}...')
     else:
-        starting = input(f'Press Enter to start on your journey, {screen_name}... ')
+        starting = input(f'Press Enter to start on your journey, {cyan}{screen_name}...{reset}\n')
 
     quiz_randomizer()  # arpoo quiz-minipelien sijainnit
     patient_location()  # arpoo potilaiden sijainnit
@@ -759,14 +764,14 @@ if new_game == "Y":
 
                 if player_location()[0] != 'ENTR':
                     if helicopter() < 1:
-                        print(f"You don't have any patients in the helicopter and you still have space for 3 patients")
+                        print(f"{warning}You don't have any patients in the helicopter and you still have space for 3 patients{reset}")
 
                     if 1 <= helicopter() < 3:
-                        print(f"Patients picked up: {helicopter()} - still space for {3 - helicopter()} more patients")
+                        print(f"{warning}Patients picked up: {helicopter()} - still space for {3 - helicopter()} more patients{reset}")
 
                     if helicopter() == 3:
-                        print(f"Patient picked up: {helicopter()} - helicopter is full "
-                              f"and you have to return to the home hospital")
+                        print(f"{warning}Patient picked up: {helicopter()} - helicopter is full "
+                              f"and you have to return to the home hospital{reset}")
 
                 home_hospital()  # Pelaajan ja kotisairaalan etäisyys:
 
@@ -775,7 +780,7 @@ if new_game == "Y":
                 # Pelastettujen potilaiden kokonaistilanne näytetään pelaajalle aina kotisairaalassa
 
                 if player_location()[0] == 'ENTR':
-                    markdown(f"{goal()} out of 12 patients rescued to the hospital")
+                    markdown(f"{bold}{goal()}{reset} out of {bold}12{reset} patients rescued to the hospital", reset)
 
                 if goal() in (3, 6, 9):
 
@@ -804,9 +809,31 @@ if new_game == "Y":
 
     if win == True:
         print(
-            "Congratulations! You have completed the game. \nYou have saved all the patients and you are hailed as the hero of Norway.")
+            f"{green}Congratulations!{reset} You have completed the game. "
+            f"\nYou have saved all the patients and you are hailed as the {green}{bold}{underline}hero{reset} of Norway.")
+
+        hero_of_norway = """
+                 _______________
+                |@@@@|     |####|
+                |@@@@|     |####|
+                |@@@@|     |####|
+                \@@@@|     |####/
+                 \@@@|     |###/
+                  `@@|_____|##'
+                       (O)
+                    .-'''''-.
+                  .'  * * *  `.
+                 :  *       *  :
+                : Hero of Norway :
+                : ~ A W A R D ~ :
+                 :  *       *  :
+                  `.  * * *  .'
+                    `-.....-'
+                    """
+
+        print(green + hero_of_norway)
 
     # Gameover
 
     if game_over == True:
-        print(f"Game over. You are out of range. :(")
+        print(f"{red}Game over. Unfortunately, you weren't able to save all the 12 patients this time :(")
